@@ -9,38 +9,103 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated.history'
+import { Route as AuthenticatedAnalyzeRouteImport } from './routes/_authenticated.analyze'
+import { Route as AuthenticatedHistoryIdRouteImport } from './routes/_authenticated.history.$id'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAnalyzeRoute = AuthenticatedAnalyzeRouteImport.update({
+  id: '/analyze',
+  path: '/analyze',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedHistoryIdRoute = AuthenticatedHistoryIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedHistoryRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/analyze': typeof AuthenticatedAnalyzeRoute
+  '/history': typeof AuthenticatedHistoryRouteWithChildren
+  '/history/$id': typeof AuthenticatedHistoryIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/analyze': typeof AuthenticatedAnalyzeRoute
+  '/history': typeof AuthenticatedHistoryRouteWithChildren
+  '/history/$id': typeof AuthenticatedHistoryIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authenticated/analyze': typeof AuthenticatedAnalyzeRoute
+  '/_authenticated/history': typeof AuthenticatedHistoryRouteWithChildren
+  '/_authenticated/history/$id': typeof AuthenticatedHistoryIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/login' | '/analyze' | '/history' | '/history/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/login' | '/analyze' | '/history' | '/history/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/analyze'
+    | '/_authenticated/history'
+    | '/_authenticated/history/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +113,70 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/analyze': {
+      id: '/_authenticated/analyze'
+      path: '/analyze'
+      fullPath: '/analyze'
+      preLoaderRoute: typeof AuthenticatedAnalyzeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/history/$id': {
+      id: '/_authenticated/history/$id'
+      path: '/$id'
+      fullPath: '/history/$id'
+      preLoaderRoute: typeof AuthenticatedHistoryIdRouteImport
+      parentRoute: typeof AuthenticatedHistoryRoute
+    }
   }
 }
 
+interface AuthenticatedHistoryRouteChildren {
+  AuthenticatedHistoryIdRoute: typeof AuthenticatedHistoryIdRoute
+}
+
+const AuthenticatedHistoryRouteChildren: AuthenticatedHistoryRouteChildren = {
+  AuthenticatedHistoryIdRoute: AuthenticatedHistoryIdRoute,
+}
+
+const AuthenticatedHistoryRouteWithChildren =
+  AuthenticatedHistoryRoute._addFileChildren(AuthenticatedHistoryRouteChildren)
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedAnalyzeRoute: typeof AuthenticatedAnalyzeRoute
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRouteWithChildren
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAnalyzeRoute: AuthenticatedAnalyzeRoute,
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRouteWithChildren,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
