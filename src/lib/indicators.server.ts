@@ -3,7 +3,7 @@
 import {
   SMA, EMA, MACD, RSI, BollingerBands, ADX, ATR, Stochastic, StochasticRSI,
   WilliamsR, CCI, ROC, MFI, TRIX, OBV, ForceIndex, VWAP, KeltnerChannels,
-  PSAR, AwesomeOscillator, IchimokuCloud, ChaikinMoneyFlow, ADL,
+  PSAR, AwesomeOscillator, IchimokuCloud, ADL,
   bullish, bearish,
   bullishengulfingpattern, bearishengulfingpattern, doji, hammerpattern,
   shootingstar, morningstar, eveningstar, threewhitesoldiers, threeblackcrows,
@@ -231,9 +231,17 @@ export function computeAll(candles: Candle[]): IndicatorResult[] {
     const sig: Signal = adl[adl.length - 1] > adl[adl.length - 2] ? "bullish" : "bearish";
     out.push({ name: "Acc/Dist Line", category: "volume", signal: sig, strength: 0.5, value: last(adl)!.toExponential(2) });
   }
-  const cmf = safe(() => ChaikinMoneyFlow.calculate({ high, low, close, volume, period: 20 }), [] as number[]);
-  const cmfL = last(cmf);
-  if (cmfL != null) {
+  // Chaikin Money Flow (manual)
+  if (candles.length >= 20) {
+    const win = candles.slice(-20);
+    let mfvSum = 0, volSum = 0;
+    for (const c of win) {
+      const range = c.h - c.l || 1e-9;
+      const mfm = ((c.c - c.l) - (c.h - c.c)) / range;
+      mfvSum += mfm * c.v;
+      volSum += c.v;
+    }
+    const cmfL = volSum > 0 ? mfvSum / volSum : 0;
     const sig: Signal = cmfL > 0.05 ? "bullish" : cmfL < -0.05 ? "bearish" : "neutral";
     out.push({ name: "Chaikin Money Flow", category: "volume", signal: sig, strength: clamp(Math.abs(cmfL) * 5), value: cmfL.toFixed(3) });
   }
