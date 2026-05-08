@@ -12,7 +12,15 @@ import { LayerCard, FinalVerdictCard } from "@/components/AnalysisCards";
 import { ResultBoxes } from "@/components/ResultBoxes";
 import { NewsList } from "@/components/NewsList";
 
-export const Route = createFileRoute("/_authenticated/analyze")({ component: AnalyzePage });
+type SearchParams = { symbol?: string; assetType?: string; range?: string };
+export const Route = createFileRoute("/_authenticated/analyze")({
+  component: AnalyzePage,
+  validateSearch: (s: Record<string, unknown>): SearchParams => ({
+    symbol: typeof s.symbol === "string" ? s.symbol : undefined,
+    assetType: typeof s.assetType === "string" ? s.assetType : undefined,
+    range: typeof s.range === "string" ? s.range : undefined,
+  }),
+});
 
 const ASSET_OPTIONS = [
   { value: "stock", label: "Stock", example: "AAPL" },
