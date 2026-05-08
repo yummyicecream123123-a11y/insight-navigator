@@ -35,9 +35,14 @@ const asArr = <T,>(v: any): T[] => Array.isArray(v) ? v : [];
 
 function AnalyzePage() {
   const { user } = useAuth();
-  const [assetType, setAssetType] = useState<typeof ASSET_OPTIONS[number]["value"]>("stock");
-  const [symbol, setSymbol] = useState("AAPL");
-  const [range, setRange] = useState<typeof RANGES[number]>("3M");
+  const search = Route.useSearch();
+  const [assetType, setAssetType] = useState<typeof ASSET_OPTIONS[number]["value"]>(
+    (ASSET_OPTIONS.find(a => a.value === search.assetType)?.value) ?? "stock"
+  );
+  const [symbol, setSymbol] = useState(search.symbol ?? "AAPL");
+  const [range, setRange] = useState<typeof RANGES[number]>(
+    (RANGES.includes(search.range as any) ? search.range : "3M") as typeof RANGES[number]
+  );
   const [imageFile, setImageFile] = useState<File | null>(null);
   const runFn = useServerFn(runAnalysis);
 
