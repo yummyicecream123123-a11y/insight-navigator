@@ -56,9 +56,9 @@ function Landing() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-24">
-        <h2 className="font-display text-3xl font-semibold tracking-tight">40+ tools at every step</h2>
+        <h2 className="font-display text-3xl font-semibold tracking-tight">60+ tools at every step</h2>
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono text-muted-foreground">
-          {["RSI","MACD","Stochastic","Bollinger","ADX","Ichimoku","VWAP","PSAR","Supertrend","ATR","OBV","Vol Profile","CMF","MFI","Williams %R","CCI","ROC","TRIX","Awesome","Fibonacci","S/R","H&S","Double Top","Double Bottom","Asc Triangle","Desc Triangle","Wedges","Flags","Cup&Handle","Doji","Hammer","Engulfing","Morning Star","Evening Star","3 Soldiers","3 Crows","Harami","Piercing","Dark Cloud","Donchian","Keltner"].map((n) => (
+          {["RSI","MACD","Stochastic","Bollinger","ADX","Ichimoku","VWAP","PSAR","Supertrend","ATR","OBV","Vol Profile","CMF","MFI","Williams %R","CCI","ROC","TRIX","Awesome","Fibonacci","S/R","H&S","Inverse H&S","Double Top","Double Bottom","Triple Top","Triple Bottom","Asc Triangle","Desc Triangle","Sym Triangle","Rising Wedge","Falling Wedge","Bull Flag","Bear Flag","Bull Pennant","Bear Pennant","Cup&Handle","Rounding Top","Rounding Bottom","Rectangle","Channel Up","Channel Down","Golden Cross","Death Cross","Higher Highs","Lower Lows","Breakout","Breakdown","Gap","Volume Climax","Doji","Hammer","Engulfing","Morning Star","Evening Star","3 Soldiers","3 Crows","Harami","Piercing","Dark Cloud","Donchian","Keltner","Risk Score","News Sentiment"].map((n) => (
             <div key={n} className="rounded border border-border bg-card/40 px-3 py-2">{n}</div>
           ))}
         </div>
