@@ -61,3 +61,28 @@ export const fetchOhlcv = createServerFn({ method: "POST" })
       candles,
     };
   });
+
+export type NewsItem = { title: string; publisher?: string; link?: string; published?: number; summary?: string };
+
+export const fetchNews = createServerFn({ method: "POST" })
+  .inputValidator((d: { symbol: string; assetType: AssetType }) => d)
+  .handler(async ({ data }): Promise<NewsItem[]> => {
+    const sym = normalizeSymbol(data.symbol, data.assetType);
+    try {
+      const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(sym)}&newsCount=12&quotesCount=0`;
+      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 LovableAnalyzer/1.0" } });
+      if (!res.ok) return [];
+      const json: any = await res.json();
+      const news: any[] = Array.isArray(json?.news) ? json.news : [];
+      return news.slice(0, 10).map((n) => ({
+        title: String(n.title ?? ""),
+        publisher: n.publisher,
+        link: n.link,
+        published: typeof n.providerPublishTime === "number" ? n.providerPublishTime * 1000 : undefined,
+        summary: n.summary,
+      })).filter((n) => n.title);
+    } catch (e) {
+      console.error("fetchNews failed:", e);
+      return [];
+    }
+  });

@@ -9,8 +9,18 @@ import { toast } from "sonner";
 import { PriceChart } from "@/components/PriceChart";
 import { IndicatorTable } from "@/components/IndicatorTable";
 import { LayerCard, FinalVerdictCard } from "@/components/AnalysisCards";
+import { ResultBoxes } from "@/components/ResultBoxes";
+import { NewsList } from "@/components/NewsList";
 
-export const Route = createFileRoute("/_authenticated/analyze")({ component: AnalyzePage });
+type SearchParams = { symbol?: string; assetType?: string; range?: string };
+export const Route = createFileRoute("/_authenticated/analyze")({
+  component: AnalyzePage,
+  validateSearch: (s: Record<string, unknown>): SearchParams => ({
+    symbol: typeof s.symbol === "string" ? s.symbol : undefined,
+    assetType: typeof s.assetType === "string" ? s.assetType : undefined,
+    range: typeof s.range === "string" ? s.range : undefined,
+  }),
+});
 
 const ASSET_OPTIONS = [
   { value: "stock", label: "Stock", example: "AAPL" },
@@ -21,42 +31,60 @@ const ASSET_OPTIONS = [
 ] as const;
 const RANGES = ["1D","5D","1M","3M","6M","1Y","5Y","MAX"] as const;
 
+const asArr = <T,>(v: any): T[] => Array.isArray(v) ? v : [];
+
 function AnalyzePage() {
   const { user } = useAuth();
-  const [assetType, setAssetType] = useState<typeof ASSET_OPTIONS[number]["value"]>("stock");
-  const [symbol, setSymbol] = useState("AAPL");
-  const [range, setRange] = useState<typeof RANGES[number]>("3M");
+  const search = Route.useSearch();
+  const [assetType, setAssetType] = useState<typeof ASSET_OPTIONS[number]["value"]>(
+    (ASSET_OPTIONS.find(a => a.value === search.assetType)?.value) ?? "stock"
+  );
+  const [symbol, setSymbol] = useState(search.symbol ?? "AAPL");
+  const [range, setRange] = useState<typeof RANGES[number]>(
+    (RANGES.includes(search.range as any) ? search.range : "3M") as typeof RANGES[number]
+  );
   const [imageFile, setImageFile] = useState<File | null>(null);
   const runFn = useServerFn(runAnalysis);
 
   const m = useMutation({
     mutationFn: async () => {
+      const cleanSym = symbol.trim().toUpperCase();
+      if (!cleanSym) throw new Error("Enter a symbol");
       let imageBase64: string | undefined;
       let imageMime: string | undefined;
       let imagePath: string | undefined;
       if (imageFile && user) {
         if (imageFile.size > 5 * 1024 * 1024) throw new Error("Image must be under 5MB");
-        const buf = await imageFile.arrayBuffer();
-        const bytes = new Uint8Array(buf);
-        let bin = ""; for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-        imageBase64 = btoa(bin);
-        imageMime = imageFile.type;
-        const path = `${user.id}/${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-        const { error } = await supabase.storage.from("chart-uploads").upload(path, imageFile);
-        if (!error) imagePath = path;
+        if (!/^image\/(png|jpeg|webp)$/.test(imageFile.type)) throw new Error("Image must be PNG, JPEG, or WebP");
+        try {
+          const buf = await imageFile.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          let bin = ""; for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          imageBase64 = btoa(bin);
+          imageMime = imageFile.type;
+          const path = `${user.id}/${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+          const { error } = await supabase.storage.from("chart-uploads").upload(path, imageFile);
+          if (!error) imagePath = path;
+        } catch (e: any) {
+          console.error("Image processing failed:", e);
+          toast.warning("Couldn't attach image — running text-only analysis.");
+          imageBase64 = undefined; imageMime = undefined; imagePath = undefined;
+        }
       }
-      return runFn({ data: { symbol, assetType, range, imageBase64, imageMime, imagePath } });
+      return runFn({ data: { symbol: cleanSym, assetType, range, imageBase64, imageMime, imagePath } });
     },
     onError: (e: any) => toast.error(e?.message ?? "Analysis failed"),
+    onSuccess: () => toast.success("Analysis complete"),
   });
 
   const example = ASSET_OPTIONS.find((a) => a.value === assetType)?.example;
+  const d = m.data;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-8">
         <h1 className="font-display text-3xl font-semibold">Analyze</h1>
-        <p className="text-sm text-muted-foreground mt-1">Pick an asset, run the triple-confirmation pipeline.</p>
+        <p className="text-sm text-muted-foreground mt-1">Pick an asset, run the 4-layer consensus pipeline.</p>
       </div>
 
       <form
@@ -100,64 +128,108 @@ function AnalyzePage() {
 
         <button type="submit" disabled={m.isPending}
           className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50">
-          {m.isPending ? "Running 3-layer analysis…" : "Run analysis"}
+          {m.isPending ? "Running 4-layer consensus…" : "Run analysis"}
         </button>
       </form>
 
-      {m.data && (
+      {m.isPending && (
+        <div className="mt-8 rounded-xl border border-border bg-card p-6 space-y-3">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground font-mono">Working</div>
+          {["Fetching OHLCV…", "Computing 60+ indicators & patterns…", "Layer 1 expert opinion…", "Layer 2 pattern check…", "Layer 3 dynamics & liquidity…", "Layer 4 news & sentiment…", "Final consensus…"].map((s) => (
+            <div key={s} className="flex items-center gap-2 text-sm">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-muted-foreground">{s}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {m.error && !m.isPending && (
+        <div className="mt-6 rounded-xl border border-bear/40 bg-bear/5 p-5 text-sm">
+          <div className="font-semibold text-bear">Analysis failed</div>
+          <div className="mt-1 text-muted-foreground">{(m.error as any)?.message ?? "Unknown error"}</div>
+          <button onClick={() => m.mutate()} className="mt-3 rounded border border-border px-3 py-1.5 text-xs hover:bg-accent">Try again</button>
+        </div>
+      )}
+
+      {d && !m.isPending && (
         <div className="mt-8 space-y-6">
           <div className="flex items-baseline justify-between flex-wrap gap-2">
             <div>
-              <div className="font-display text-2xl font-semibold">{m.data.symbol}</div>
-              <div className="text-xs text-muted-foreground font-mono">{m.data.exchange ?? assetType.toUpperCase()} · {range} · {m.data.indicators.length} signals analyzed</div>
+              <div className="font-display text-2xl font-semibold">{d.symbol}</div>
+              <div className="text-xs text-muted-foreground font-mono">{d.exchange ?? assetType.toUpperCase()} · {range} · {d.indicators.length} signals · {d.news?.length ?? 0} headlines</div>
             </div>
             <div className="font-mono text-xs text-muted-foreground">
-              <span className="text-bull">{m.data.summary.bullish} bull</span> · <span className="text-bear">{m.data.summary.bearish} bear</span> · {m.data.summary.neutral} neutral
+              <span className="text-bull">{d.summary.bullish} bull</span> · <span className="text-bear">{d.summary.bearish} bear</span> · {d.summary.neutral} neutral
             </div>
           </div>
 
-          <PriceChart candles={m.data.candles} />
+          <ResultBoxes boxes={d.boxes as any} />
+          <PriceChart candles={d.candles} />
+          <FinalVerdictCard data={{ ...d.final, agreement_score: d.final.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note }} />
 
-          <FinalVerdictCard data={m.data.layer3} />
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior discretionary trader" bias={m.data.layer1.bias} conviction={m.data.layer1.conviction}>
-              <p>{m.data.layer1.thesis}</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior trader" bias={d.layer1?.bias} conviction={d.layer1?.conviction}>
+              <p>{d.layer1?.thesis}</p>
               <div>
                 <div className="text-xs text-muted-foreground">Key levels</div>
-                <ul className="list-disc pl-4 mt-1 text-xs">{m.data.layer1.key_levels.map((k: string, i: number) => <li key={i}>{k}</li>)}</ul>
+                <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer1?.key_levels).map((k, i) => <li key={i}>{k}</li>)}</ul>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Risks</div>
-                <ul className="list-disc pl-4 mt-1 text-xs">{m.data.layer1.risks.map((k: string, i: number) => <li key={i}>{k}</li>)}</ul>
+                <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer1?.risks).map((k, i) => <li key={i}>{k}</li>)}</ul>
               </div>
             </LayerCard>
-            <LayerCard tag="Layer 2" title="Pattern Confirmation" persona="Quantitative technician" bias={m.data.layer2.bias} conviction={m.data.layer2.conviction}>
-              <p>{m.data.layer2.summary}</p>
+
+            <LayerCard tag="Layer 2" title="Pattern Confirmation" persona="Quant technician" bias={d.layer2?.bias} conviction={d.layer2?.conviction}>
+              <p>{d.layer2?.summary}</p>
               <div>
                 <div className="text-xs text-bull">Confirming</div>
-                <ul className="list-disc pl-4 mt-1 text-xs">{m.data.layer2.confirming.map((k: string, i: number) => <li key={i}>{k}</li>)}</ul>
+                <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer2?.confirming).map((k, i) => <li key={i}>{k}</li>)}</ul>
               </div>
               <div>
                 <div className="text-xs text-bear">Contradicting</div>
-                <ul className="list-disc pl-4 mt-1 text-xs">{m.data.layer2.contradicting.map((k: string, i: number) => <li key={i}>{k}</li>)}</ul>
+                <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer2?.contradicting).map((k, i) => <li key={i}>{k}</li>)}</ul>
               </div>
-              {m.data.layer2.divergences?.length > 0 && (
+              {asArr(d.layer2?.divergences).length > 0 && (
                 <div>
                   <div className="text-xs text-muted-foreground">Divergences</div>
-                  <ul className="list-disc pl-4 mt-1 text-xs">{m.data.layer2.divergences.map((k: string, i: number) => <li key={i}>{k}</li>)}</ul>
+                  <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer2?.divergences).map((k, i) => <li key={i}>{k}</li>)}</ul>
                 </div>
               )}
             </LayerCard>
-            <LayerCard tag="Layer 3" title="Dynamics & Liquidity" persona="Market microstructure analyst">
-              <p><span className="text-xs text-muted-foreground">Market dynamics:</span> {m.data.layer3.market_dynamics}</p>
-              <p><span className="text-xs text-muted-foreground">Liquidity:</span> {m.data.layer3.liquidity_note}</p>
+
+            <LayerCard tag="Layer 3" title="Dynamics & Liquidity" persona="Microstructure analyst" bias={d.layer3?.bias} conviction={d.layer3?.conviction}>
+              <p><span className="text-xs text-muted-foreground">Dynamics:</span> {d.layer3?.market_dynamics}</p>
+              <p><span className="text-xs text-muted-foreground">Liquidity:</span> {d.layer3?.liquidity_note}</p>
+              <p><span className="text-xs text-muted-foreground">Volatility:</span> {d.layer3?.volatility_note}</p>
+              {asArr(d.layer3?.key_risks).length > 0 && (
+                <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer3?.key_risks).map((k, i) => <li key={i}>{k}</li>)}</ul>
+              )}
+            </LayerCard>
+
+            <LayerCard tag="Layer 4" title="News & Sentiment" persona="Macro / political analyst" bias={d.layer4?.bias} conviction={d.layer4?.conviction}>
+              <p>{d.layer4?.summary}</p>
+              {d.layer4?.political_drama && <p className="text-xs"><span className="text-muted-foreground">Political:</span> {d.layer4.political_drama}</p>}
+              <div>
+                <div className="text-xs text-muted-foreground">Catalysts</div>
+                <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer4?.catalysts).map((k, i) => <li key={i}>{k}</li>)}</ul>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Key headlines</div>
+                <ul className="list-disc pl-4 mt-1 text-xs">{asArr<string>(d.layer4?.key_headlines).slice(0,4).map((k, i) => <li key={i}>{k}</li>)}</ul>
+              </div>
             </LayerCard>
           </div>
 
           <div>
-            <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({m.data.indicators.length})</h2>
-            <IndicatorTable items={m.data.indicators} />
+            <h2 className="font-display text-xl font-semibold mb-3">Recent headlines</h2>
+            <NewsList items={d.news} />
+          </div>
+
+          <div>
+            <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({d.indicators.length})</h2>
+            <IndicatorTable items={d.indicators} />
           </div>
         </div>
       )}

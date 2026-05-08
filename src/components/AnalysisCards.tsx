@@ -36,7 +36,9 @@ const verdictColor = (v: Verdict) => {
 };
 
 export function FinalVerdictCard({ data }: { data: any }) {
-  const v = data.verdict as Verdict;
+  const v = (data?.verdict ?? "Hold") as Verdict;
+  const conf = Number(data?.confidence ?? 0);
+  const agree = Number(data?.agreement_score ?? 0);
   return (
     <div className={`rounded-xl border bg-gradient-to-br to-card p-6 ${verdictColor(v)}`}>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -46,8 +48,8 @@ export function FinalVerdictCard({ data }: { data: any }) {
         </div>
         <div className="text-right">
           <div className="text-xs text-muted-foreground">Confidence</div>
-          <div className="font-mono text-2xl">{(data.confidence * 100).toFixed(0)}%</div>
-          <div className="text-xs text-muted-foreground mt-1">Agreement {(data.agreement_score * 100).toFixed(0)}%</div>
+          <div className="font-mono text-2xl">{(conf * 100).toFixed(0)}%</div>
+          <div className="text-xs text-muted-foreground mt-1">Agreement {(agree * 100).toFixed(0)}%</div>
         </div>
       </div>
       <div className="mt-5 grid md:grid-cols-3 gap-3 text-sm">
@@ -61,7 +63,7 @@ export function FinalVerdictCard({ data }: { data: any }) {
         </div>
         <div className="rounded-lg border border-border/60 bg-background/30 p-3">
           <div className="text-xs text-muted-foreground">Targets</div>
-          <div className="font-mono mt-1">{(data.targets || []).join(" · ")}</div>
+          <div className="font-mono mt-1">{(Array.isArray(data.targets) ? data.targets : []).join(" · ") || "—"}</div>
         </div>
       </div>
       <div className="mt-4 grid md:grid-cols-2 gap-3 text-sm">

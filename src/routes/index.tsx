@@ -5,8 +5,8 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "Tritone — Triple-confirmation AI Stock Analyzer" },
-      { name: "description", content: "Run 40+ technical indicators and 3 layers of AI confirmation across stocks, ETFs, crypto, forex, and commodities." },
+      { title: "Tritone — 4-Layer AI Stock Consensus" },
+      { name: "description", content: "60+ indicators, 4 layers of AI confirmation (expert, patterns, dynamics, news) across stocks, ETFs, crypto, forex, commodities." },
     ],
   }),
 });
@@ -17,13 +17,14 @@ function Landing() {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.78_0.16_195/0.18),transparent)]" />
       <section className="mx-auto max-w-6xl px-6 pt-24 pb-16 text-center">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <span className="inline-block rounded-full border border-border bg-card/50 px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">Triple confirmation engine</span>
+          <span className="inline-block rounded-full border border-border bg-card/50 px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">4-layer consensus engine</span>
           <h1 className="mt-6 font-display text-5xl md:text-7xl font-semibold tracking-tighter">
-            Three eyes on every <span className="text-primary">trade</span>.
+            Four eyes on every <span className="text-primary">trade</span>.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-muted-foreground text-lg">
-            Tritone fuses 40+ classical indicators, computer-vision chart reading, and three layers of AI confirmation —
-            expert opinion, pattern check, and market dynamics — into a single decisive verdict.
+            Tritone fuses 60+ classical indicators &amp; chart patterns, computer-vision chart reading, and
+            <span className="text-foreground"> four layers</span> of AI confirmation —
+            expert, patterns, market dynamics, and live news — into a single decisive verdict with risk scoring.
           </p>
           <div className="mt-10 flex items-center justify-center gap-3">
             <Link to="/analyze" className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground">Start analyzing</Link>
@@ -32,11 +33,12 @@ function Landing() {
         </motion.div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-24 grid md:grid-cols-3 gap-4">
+      <section className="mx-auto max-w-6xl px-6 pb-24 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { tag: "Layer 1", title: "Expert Opinion", body: "A senior trader persona reads price action and any uploaded chart image, calls direction and key levels.", color: "from-primary/30" },
-          { tag: "Layer 2", title: "Pattern Confirmation", body: "Quant technician cross-checks the thesis against 40+ live indicators — flagging confirmation, contradiction, divergence.", color: "from-bull/30" },
-          { tag: "Layer 3", title: "Dynamics & Liquidity", body: "Microstructure analyst issues the final verdict with entry, stop, targets, and position-sizing.", color: "from-bear/30" },
+          { tag: "Layer 1", title: "Expert Opinion", body: "Senior trader persona reads price action and any chart image; calls direction and key levels.", color: "from-primary/30" },
+          { tag: "Layer 2", title: "Pattern Confirmation", body: "Quant technician cross-checks against 60+ indicators & patterns — flags confirmation, contradiction, divergence.", color: "from-bull/30" },
+          { tag: "Layer 3", title: "Dynamics & Liquidity", body: "Microstructure analyst weighs liquidity, volatility, and risk before committing.", color: "from-bear/30" },
+          { tag: "Layer 4", title: "News & Sentiment", body: "Macro analyst sweeps recent headlines, political drama, and catalysts that move the asset.", color: "from-primary/30" },
         ].map((c, i) => (
           <motion.div
             key={c.tag}
@@ -54,9 +56,9 @@ function Landing() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-24">
-        <h2 className="font-display text-3xl font-semibold tracking-tight">40+ tools at every step</h2>
+        <h2 className="font-display text-3xl font-semibold tracking-tight">60+ tools at every step</h2>
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono text-muted-foreground">
-          {["RSI","MACD","Stochastic","Bollinger","ADX","Ichimoku","VWAP","PSAR","Supertrend","ATR","OBV","Vol Profile","CMF","MFI","Williams %R","CCI","ROC","TRIX","Awesome","Fibonacci","S/R","H&S","Double Top","Double Bottom","Asc Triangle","Desc Triangle","Wedges","Flags","Cup&Handle","Doji","Hammer","Engulfing","Morning Star","Evening Star","3 Soldiers","3 Crows","Harami","Piercing","Dark Cloud","Donchian","Keltner"].map((n) => (
+          {["RSI","MACD","Stochastic","Bollinger","ADX","Ichimoku","VWAP","PSAR","Supertrend","ATR","OBV","Vol Profile","CMF","MFI","Williams %R","CCI","ROC","TRIX","Awesome","Fibonacci","S/R","H&S","Inverse H&S","Double Top","Double Bottom","Triple Top","Triple Bottom","Asc Triangle","Desc Triangle","Sym Triangle","Rising Wedge","Falling Wedge","Bull Flag","Bear Flag","Bull Pennant","Bear Pennant","Cup&Handle","Rounding Top","Rounding Bottom","Rectangle","Channel Up","Channel Down","Golden Cross","Death Cross","Higher Highs","Lower Lows","Breakout","Breakdown","Gap","Volume Climax","Doji","Hammer","Engulfing","Morning Star","Evening Star","3 Soldiers","3 Crows","Harami","Piercing","Dark Cloud","Donchian","Keltner","Risk Score","News Sentiment"].map((n) => (
             <div key={n} className="rounded border border-border bg-card/40 px-3 py-2">{n}</div>
           ))}
         </div>

@@ -17,6 +17,7 @@ export type Database = {
       analyses: {
         Row: {
           asset_type: string
+          boxes: Json | null
           confidence: number | null
           created_at: string
           final_verdict: string | null
@@ -26,12 +27,16 @@ export type Database = {
           layer1: Json | null
           layer2: Json | null
           layer3: Json | null
+          layer4: Json | null
+          news: Json | null
+          risk_score: number | null
           symbol: string
           time_range: string
           user_id: string
         }
         Insert: {
           asset_type: string
+          boxes?: Json | null
           confidence?: number | null
           created_at?: string
           final_verdict?: string | null
@@ -41,12 +46,16 @@ export type Database = {
           layer1?: Json | null
           layer2?: Json | null
           layer3?: Json | null
+          layer4?: Json | null
+          news?: Json | null
+          risk_score?: number | null
           symbol: string
           time_range: string
           user_id: string
         }
         Update: {
           asset_type?: string
+          boxes?: Json | null
           confidence?: number | null
           created_at?: string
           final_verdict?: string | null
@@ -56,6 +65,9 @@ export type Database = {
           layer1?: Json | null
           layer2?: Json | null
           layer3?: Json | null
+          layer4?: Json | null
+          news?: Json | null
+          risk_score?: number | null
           symbol?: string
           time_range?: string
           user_id?: string
