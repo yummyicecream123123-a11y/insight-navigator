@@ -61,7 +61,7 @@ export function FinalVerdictCard({ data }: { data: any }) {
         </div>
         <div className="rounded-lg border border-border/60 bg-background/30 p-3">
           <div className="text-xs text-muted-foreground">Targets</div>
-          <div className="font-mono mt-1">{(data.targets || []).join(" · ")}</div>
+          <div className="font-mono mt-1">{(Array.isArray(data.targets) ? data.targets : []).join(" · ") || "—"}</div>
         </div>
       </div>
       <div className="mt-4 grid md:grid-cols-2 gap-3 text-sm">
