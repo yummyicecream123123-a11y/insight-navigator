@@ -45,8 +45,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tritone — AI Stock & Chart Analyzer" },
+      { title: "Tritone, AI Stock & Chart Analyzer" },
       { name: "description", content: "Multi-asset analyzer with 40+ technical patterns and three layers of AI confirmation." },
+      { property: "og:title", content: "Tritone, AI Stock & Chart Analyzer" },
+      { name: "twitter:title", content: "Tritone, AI Stock & Chart Analyzer" },
+      { property: "og:description", content: "Multi-asset analyzer with 40+ technical patterns and three layers of AI confirmation." },
+      { name: "twitter:description", content: "Multi-asset analyzer with 40+ technical patterns and three layers of AI confirmation." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bffcbf63-da44-441d-a5b8-0c50d13e6ac0/id-preview-617018c4--02dbd873-c795-4a3c-9d63-ad76a2a89ad9.lovable.app-1778199006713.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/bffcbf63-da44-441d-a5b8-0c50d13e6ac0/id-preview-617018c4--02dbd873-c795-4a3c-9d63-ad76a2a89ad9.lovable.app-1778199006713.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
