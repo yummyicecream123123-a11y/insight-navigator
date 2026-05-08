@@ -402,6 +402,109 @@ export function computeAll(candles: Candle[]): IndicatorResult[] {
     out.push({ name: "Cup & Handle", category: "chart", signal: cup ? "bullish" : "neutral", strength: cup ? 0.55 : 0.1, value: cup ? "possible" : "—" });
   }
 
+  // ====== EXTRA CHART PATTERNS (20+) ======
+  if (candles.length >= 60) {
+    const win = candles.slice(-60);
+    const hi = win.map((c) => c.h);
+    const lo = win.map((c) => c.l);
+    const cl = win.map((c) => c.c);
+    const n = win.length;
+    const slope = (arr: number[]) => {
+      const m = arr.length, mean = arr.reduce((a, b) => a + b, 0) / m;
+      let num = 0, den = 0;
+      arr.forEach((v, i) => { num += (i - m / 2) * (v - mean); den += (i - m / 2) ** 2; });
+      return den ? num / den : 0;
+    };
+    const sH = slope(hi), sL = slope(lo), sC = slope(cl);
+
+    // Inverse Head & Shoulders
+    const mid = Math.floor(n / 2);
+    const leftMin = Math.min(...lo.slice(0, mid - 5));
+    const rightMin = Math.min(...lo.slice(mid + 5));
+    const headLow = Math.min(...lo.slice(mid - 5, mid + 5));
+    const ihs = headLow < leftMin && headLow < rightMin && Math.abs(leftMin - rightMin) / leftMin < 0.03;
+    out.push({ name: "Inverse Head & Shoulders", category: "chart", signal: ihs ? "bullish" : "neutral", strength: ihs ? 0.7 : 0.1, value: ihs ? "detected" : "—" });
+
+    // Triple top / bottom
+    const sortedH = hi.map((h, i) => ({ i, h })).sort((a, b) => b.h - a.h).slice(0, 3);
+    const sortedL = lo.map((l, i) => ({ i, l })).sort((a, b) => a.l - b.l).slice(0, 3);
+    const tripleTop = sortedH.length === 3 && (Math.max(...sortedH.map(p => p.h)) - Math.min(...sortedH.map(p => p.h))) / sortedH[0].h < 0.015;
+    const tripleBot = sortedL.length === 3 && (Math.max(...sortedL.map(p => p.l)) - Math.min(...sortedL.map(p => p.l))) / sortedL[0].l < 0.015;
+    out.push({ name: "Triple Top", category: "chart", signal: tripleTop ? "bearish" : "neutral", strength: tripleTop ? 0.65 : 0.1, value: tripleTop ? "detected" : "—" });
+    out.push({ name: "Triple Bottom", category: "chart", signal: tripleBot ? "bullish" : "neutral", strength: tripleBot ? 0.65 : 0.1, value: tripleBot ? "detected" : "—" });
+
+    // Rounding bottom / top (parabolic close fit, simplified curvature)
+    const ys = cl;
+    const xs = ys.map((_, i) => i);
+    const xMean = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const yMean = ys.reduce((a, b) => a + b, 0) / ys.length;
+    let a2 = 0, denom = 0;
+    xs.forEach((x, i) => { a2 += (x - xMean) ** 2 * (ys[i] - yMean); denom += (x - xMean) ** 4; });
+    const curvature = denom ? a2 / denom : 0;
+    out.push({ name: "Rounding Bottom", category: "chart", signal: curvature > 0 ? "bullish" : "neutral", strength: curvature > 0 ? clamp(curvature * 1000) : 0.1, value: curvature.toExponential(2) });
+    out.push({ name: "Rounding Top", category: "chart", signal: curvature < 0 ? "bearish" : "neutral", strength: curvature < 0 ? clamp(-curvature * 1000) : 0.1, value: curvature.toExponential(2) });
+
+    // Pennant (small symmetrical converging after sharp move)
+    const moveStart = cl[0], moveMid = cl[Math.floor(n * 0.3)];
+    const sharpUp = (moveMid - moveStart) / moveStart > 0.05;
+    const sharpDown = (moveStart - moveMid) / moveStart > 0.05;
+    const converging = sH < 0 && sL > 0;
+    out.push({ name: "Bullish Pennant", category: "chart", signal: sharpUp && converging ? "bullish" : "neutral", strength: sharpUp && converging ? 0.6 : 0.1, value: sharpUp && converging ? "forming" : "—" });
+    out.push({ name: "Bearish Pennant", category: "chart", signal: sharpDown && converging ? "bearish" : "neutral", strength: sharpDown && converging ? 0.6 : 0.1, value: sharpDown && converging ? "forming" : "—" });
+
+    // Rectangle / Range
+    const rangeHigh = Math.max(...hi.slice(-20));
+    const rangeLow = Math.min(...lo.slice(-20));
+    const rangePct = (rangeHigh - rangeLow) / rangeLow;
+    const rectangle = rangePct < 0.04 && Math.abs(sH) < 0.02 && Math.abs(sL) < 0.02;
+    out.push({ name: "Rectangle / Range", category: "chart", signal: rectangle ? "neutral" : "neutral", strength: rectangle ? 0.5 : 0.1, value: rectangle ? `${rangeLow.toFixed(2)}–${rangeHigh.toFixed(2)}` : "—" });
+
+    // Breakout / breakdown (close vs prior 20-day range)
+    const priorHigh = Math.max(...hi.slice(-21, -1));
+    const priorLow = Math.min(...lo.slice(-21, -1));
+    const breakout = price > priorHigh;
+    const breakdown = price < priorLow;
+    out.push({ name: "20-bar Breakout", category: "chart", signal: breakout ? "bullish" : "neutral", strength: breakout ? 0.75 : 0.1, value: breakout ? "yes" : "—" });
+    out.push({ name: "20-bar Breakdown", category: "chart", signal: breakdown ? "bearish" : "neutral", strength: breakdown ? 0.75 : 0.1, value: breakdown ? "yes" : "—" });
+
+    // Gap detection
+    const gaps = win.slice(1).map((c, i) => c.o - win[i].c);
+    const recentGap = gaps[gaps.length - 1] ?? 0;
+    out.push({ name: "Gap (recent)", category: "chart", signal: recentGap > 0 ? "bullish" : recentGap < 0 ? "bearish" : "neutral", strength: clamp(Math.abs(recentGap) / price * 50), value: `${(recentGap / price * 100).toFixed(2)}%` });
+
+    // Channel up/down
+    const channelUp = sH > 0 && sL > 0 && Math.abs(sH - sL) / Math.abs(sH || 1) < 0.3;
+    const channelDn = sH < 0 && sL < 0 && Math.abs(sH - sL) / Math.abs(sH || 1) < 0.3;
+    out.push({ name: "Channel Up", category: "chart", signal: channelUp ? "bullish" : "neutral", strength: channelUp ? 0.55 : 0.1, value: channelUp ? "active" : "—" });
+    out.push({ name: "Channel Down", category: "chart", signal: channelDn ? "bearish" : "neutral", strength: channelDn ? 0.55 : 0.1, value: channelDn ? "active" : "—" });
+
+    // Golden / death cross (SMA50 vs SMA200)
+    if (sma50.length > 1 && sma200.length > 1) {
+      const g50 = sma50[sma50.length - 1], g50p = sma50[sma50.length - 2];
+      const g200 = sma200[sma200.length - 1], g200p = sma200[sma200.length - 2];
+      const golden = g50p < g200p && g50 > g200;
+      const death = g50p > g200p && g50 < g200;
+      out.push({ name: "Golden Cross", category: "chart", signal: golden ? "bullish" : g50 > g200 ? "bullish" : "neutral", strength: golden ? 0.85 : 0.2, value: golden ? "today" : g50 > g200 ? "active" : "—" });
+      out.push({ name: "Death Cross", category: "chart", signal: death ? "bearish" : g50 < g200 ? "bearish" : "neutral", strength: death ? 0.85 : 0.2, value: death ? "today" : g50 < g200 ? "active" : "—" });
+    }
+
+    // Higher highs / lower lows structure
+    const segH = [hi.slice(0, 20), hi.slice(20, 40), hi.slice(40, 60)].map(s => Math.max(...s));
+    const segL = [lo.slice(0, 20), lo.slice(20, 40), lo.slice(40, 60)].map(s => Math.min(...s));
+    const hh = segH[0] < segH[1] && segH[1] < segH[2];
+    const ll = segL[0] > segL[1] && segL[1] > segL[2];
+    out.push({ name: "Higher Highs", category: "chart", signal: hh ? "bullish" : "neutral", strength: hh ? 0.6 : 0.1, value: hh ? "yes" : "—" });
+    out.push({ name: "Lower Lows", category: "chart", signal: ll ? "bearish" : "neutral", strength: ll ? 0.6 : 0.1, value: ll ? "yes" : "—" });
+
+    // Trend direction (close slope)
+    out.push({ name: "Close Trend Slope", category: "chart", signal: sC > 0 ? "bullish" : sC < 0 ? "bearish" : "neutral", strength: clamp(Math.abs(sC) / price * 1000), value: sC.toFixed(4) });
+
+    // Volume climax (last bar volume > 2x avg)
+    const avgVol = volume.slice(-20).reduce((a, b) => a + b, 0) / 20;
+    const climax = avgVol > 0 && volume[volume.length - 1] > 2 * avgVol;
+    out.push({ name: "Volume Climax", category: "chart", signal: climax ? (cl[cl.length-1] > cl[cl.length-2] ? "bullish" : "bearish") : "neutral", strength: climax ? 0.7 : 0.1, value: climax ? `${(volume[volume.length-1]/avgVol).toFixed(1)}x` : "—" });
+  }
+
   return out;
 }
 
@@ -412,4 +515,38 @@ export function summarize(indicators: IndicatorResult[]) {
   const bearish = indicators.filter((i) => i.signal === "bearish").length;
   const neutral = indicators.filter((i) => i.signal === "neutral").length;
   return { score, total, bullish, bearish, neutral };
+}
+
+// Risk evaluation derived from price + indicators.
+export function evaluateRisk(candles: Candle[], indicators: IndicatorResult[]): {
+  score: number; level: "Low" | "Moderate" | "High" | "Extreme"; factors: string[];
+} {
+  const factors: string[] = [];
+  if (!candles.length) return { score: 0.5, level: "Moderate", factors: ["Insufficient data"] };
+  const closes = candles.map((c) => c.c);
+  const last = closes[closes.length - 1];
+  const returns: number[] = [];
+  for (let i = 1; i < closes.length; i++) returns.push((closes[i] - closes[i - 1]) / closes[i - 1]);
+  const mean = returns.reduce((a, b) => a + b, 0) / Math.max(1, returns.length);
+  const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, returns.length);
+  const vol = Math.sqrt(variance);
+  const annVol = vol * Math.sqrt(252);
+  if (annVol > 0.6) factors.push(`Annualized volatility ${(annVol*100).toFixed(0)}%`);
+  // Drawdown
+  let peak = closes[0], dd = 0;
+  for (const c of closes) { peak = Math.max(peak, c); dd = Math.min(dd, (c - peak) / peak); }
+  if (dd < -0.2) factors.push(`Max drawdown ${(dd*100).toFixed(0)}%`);
+  // ATR % of price
+  const atr = indicators.find((i) => i.name === "ATR(14)");
+  const atrPct = atr ? Number(atr.value) / last : 0;
+  if (atrPct > 0.04) factors.push(`ATR ${(atrPct*100).toFixed(2)}% of price`);
+  // Conflicting signals
+  const sum = summarize(indicators);
+  const conflict = sum.bullish > 0 && sum.bearish > 0 ? Math.min(sum.bullish, sum.bearish) / Math.max(sum.bullish, sum.bearish) : 0;
+  if (conflict > 0.7) factors.push("High signal conflict");
+  // Score 0..1
+  const score = clamp(annVol / 1.5 + Math.abs(dd) / 0.5 + atrPct * 5 + conflict * 0.3);
+  const level = score > 0.75 ? "Extreme" : score > 0.5 ? "High" : score > 0.25 ? "Moderate" : "Low";
+  if (!factors.length) factors.push("Risk profile within normal ranges");
+  return { score, level, factors };
 }
