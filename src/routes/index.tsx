@@ -17,13 +17,14 @@ function Landing() {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,oklch(0.78_0.16_195/0.18),transparent)]" />
       <section className="mx-auto max-w-6xl px-6 pt-24 pb-16 text-center">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <span className="inline-block rounded-full border border-border bg-card/50 px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">Triple confirmation engine</span>
+          <span className="inline-block rounded-full border border-border bg-card/50 px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">4-layer consensus engine</span>
           <h1 className="mt-6 font-display text-5xl md:text-7xl font-semibold tracking-tighter">
-            Three eyes on every <span className="text-primary">trade</span>.
+            Four eyes on every <span className="text-primary">trade</span>.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-muted-foreground text-lg">
-            Tritone fuses 40+ classical indicators, computer-vision chart reading, and three layers of AI confirmation —
-            expert opinion, pattern check, and market dynamics — into a single decisive verdict.
+            Tritone fuses 60+ classical indicators &amp; chart patterns, computer-vision chart reading, and
+            <span className="text-foreground"> four layers</span> of AI confirmation —
+            expert, patterns, market dynamics, and live news — into a single decisive verdict with risk scoring.
           </p>
           <div className="mt-10 flex items-center justify-center gap-3">
             <Link to="/analyze" className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground">Start analyzing</Link>
