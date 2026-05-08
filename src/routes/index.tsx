@@ -5,8 +5,8 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "Tritone — Triple-confirmation AI Stock Analyzer" },
-      { name: "description", content: "Run 40+ technical indicators and 3 layers of AI confirmation across stocks, ETFs, crypto, forex, and commodities." },
+      { title: "Tritone — 4-Layer AI Stock Consensus" },
+      { name: "description", content: "60+ indicators, 4 layers of AI confirmation (expert, patterns, dynamics, news) across stocks, ETFs, crypto, forex, commodities." },
     ],
   }),
 });
