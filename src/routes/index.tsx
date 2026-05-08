@@ -33,11 +33,12 @@ function Landing() {
         </motion.div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-24 grid md:grid-cols-3 gap-4">
+      <section className="mx-auto max-w-6xl px-6 pb-24 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { tag: "Layer 1", title: "Expert Opinion", body: "A senior trader persona reads price action and any uploaded chart image, calls direction and key levels.", color: "from-primary/30" },
-          { tag: "Layer 2", title: "Pattern Confirmation", body: "Quant technician cross-checks the thesis against 40+ live indicators — flagging confirmation, contradiction, divergence.", color: "from-bull/30" },
-          { tag: "Layer 3", title: "Dynamics & Liquidity", body: "Microstructure analyst issues the final verdict with entry, stop, targets, and position-sizing.", color: "from-bear/30" },
+          { tag: "Layer 1", title: "Expert Opinion", body: "Senior trader persona reads price action and any chart image; calls direction and key levels.", color: "from-primary/30" },
+          { tag: "Layer 2", title: "Pattern Confirmation", body: "Quant technician cross-checks against 60+ indicators & patterns — flags confirmation, contradiction, divergence.", color: "from-bull/30" },
+          { tag: "Layer 3", title: "Dynamics & Liquidity", body: "Microstructure analyst weighs liquidity, volatility, and risk before committing.", color: "from-bear/30" },
+          { tag: "Layer 4", title: "News & Sentiment", body: "Macro analyst sweeps recent headlines, political drama, and catalysts that move the asset.", color: "from-primary/30" },
         ].map((c, i) => (
           <motion.div
             key={c.tag}
