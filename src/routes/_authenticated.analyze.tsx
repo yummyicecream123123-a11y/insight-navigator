@@ -78,7 +78,8 @@ function AnalyzePage() {
   });
 
   const example = ASSET_OPTIONS.find((a) => a.value === assetType)?.example;
-  const d = m.data;
+  const raw: any = m.data;
+  const d: any = raw?.indicators || raw?.summary || raw?.candles ? raw : (raw?.result ?? raw?.data ?? raw);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
