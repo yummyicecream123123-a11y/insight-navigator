@@ -74,11 +74,12 @@ function AnalyzePage() {
       return runFn({ data: { symbol: cleanSym, assetType, range, imageBase64, imageMime, imagePath } });
     },
     onError: (e: any) => toast.error(e?.message ?? "Analysis failed"),
-    onSuccess: () => toast.success("Analysis complete"),
+    onSuccess: (data: any) => { console.log("[analyze] full response:", JSON.stringify(data).slice(0, 500), "type:", typeof data, "isArr:", Array.isArray(data)); toast.success("Analysis complete"); },
   });
 
   const example = ASSET_OPTIONS.find((a) => a.value === assetType)?.example;
-  const d = m.data;
+  const raw: any = m.data;
+  const d: any = raw?.indicators || raw?.summary || raw?.candles ? raw : (raw?.result ?? raw?.data ?? raw);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
@@ -157,16 +158,16 @@ function AnalyzePage() {
           <div className="flex items-baseline justify-between flex-wrap gap-2">
             <div>
               <div className="font-display text-2xl font-semibold">{d.symbol}</div>
-              <div className="text-xs text-muted-foreground font-mono">{d.exchange ?? assetType.toUpperCase()} · {range} · {d.indicators.length} signals · {d.news?.length ?? 0} headlines</div>
+              <div className="text-xs text-muted-foreground font-mono">{d.exchange ?? assetType.toUpperCase()} · {range} · {d.indicators?.length ?? 0} signals · {d.news?.length ?? 0} headlines</div>
             </div>
             <div className="font-mono text-xs text-muted-foreground">
-              <span className="text-bull">{d.summary.bullish} bull</span> · <span className="text-bear">{d.summary.bearish} bear</span> · {d.summary.neutral} neutral
+              <span className="text-bull">{d.summary?.bullish ?? 0} bull</span> · <span className="text-bear">{d.summary?.bearish ?? 0} bear</span> · {d.summary?.neutral ?? 0} neutral
             </div>
           </div>
 
           <ResultBoxes boxes={d.boxes as any} />
-          <PriceChart candles={d.candles} />
-          <FinalVerdictCard data={{ ...d.final, agreement_score: d.final.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note }} />
+          {d.candles && <PriceChart candles={d.candles} />}
+          {d.final && <FinalVerdictCard data={{ ...d.final, agreement_score: d.final?.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note }} />}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior trader" bias={d.layer1?.bias} conviction={d.layer1?.conviction}>
@@ -228,8 +229,8 @@ function AnalyzePage() {
           </div>
 
           <div>
-            <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({d.indicators.length})</h2>
-            <IndicatorTable items={d.indicators} />
+            <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({d.indicators?.length ?? 0})</h2>
+            <IndicatorTable items={d.indicators ?? []} />
           </div>
         </div>
       )}
