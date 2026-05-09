@@ -228,8 +228,8 @@ function AnalyzePage() {
           </div>
 
           <div>
-            <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({d.indicators.length})</h2>
-            <IndicatorTable items={d.indicators} />
+            <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({d.indicators?.length ?? 0})</h2>
+            <IndicatorTable items={d.indicators ?? []} />
           </div>
         </div>
       )}
