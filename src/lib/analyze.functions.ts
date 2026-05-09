@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { fetchOhlcv, fetchNews, AssetSchema, RangeSchema, type NewsItem } from "./market.functions";
+import { AssetSchema, RangeSchema, type NewsItem } from "./market.schema";
+import { fetchOhlcvData, fetchNewsData } from "./market.server";
 import { computeAll, summarize, evaluateRisk } from "./indicators.server";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -144,6 +145,7 @@ const InputSchema = z.object({
   imageMime: z.string().optional(),
   imagePath: z.string().optional(),
 });
+type AnalysisInput = z.infer<typeof InputSchema>;
 
 function asArr(v: any): any[] { return Array.isArray(v) ? v : []; }
 
@@ -174,11 +176,11 @@ function buildBoxes(opts: {
 
 export const runAnalysis = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => InputSchema.parse(d))
+  .inputValidator((d: unknown): AnalysisInput => InputSchema.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    const ohlcv = await fetchOhlcv({ data: { symbol: data.symbol, assetType: data.assetType, range: data.range } });
+    const ohlcv = await fetchOhlcvData({ symbol: data.symbol, assetType: data.assetType, range: data.range });
     const indicators = computeAll(ohlcv.candles);
     const sum = summarize(indicators);
     const risk = evaluateRisk(ohlcv.candles, indicators);
@@ -186,7 +188,7 @@ export const runAnalysis = createServerFn({ method: "POST" })
     const first = ohlcv.candles[0];
     const change = ((last.c - first.c) / first.c) * 100;
 
-    const news = await fetchNews({ data: { symbol: ohlcv.symbol, assetType: data.assetType } }).catch(() => [] as NewsItem[]);
+    const news = await fetchNewsData({ symbol: ohlcv.symbol, assetType: data.assetType }).catch(() => [] as NewsItem[]);
 
     const priceCtx = `Symbol: ${ohlcv.symbol} (${data.assetType}). Range: ${data.range}.
 Current price: ${last.c.toFixed(4)} ${ohlcv.currency ?? ""}. Period change: ${change.toFixed(2)}%.
