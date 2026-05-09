@@ -74,7 +74,7 @@ function AnalyzePage() {
       return runFn({ data: { symbol: cleanSym, assetType, range, imageBase64, imageMime, imagePath } });
     },
     onError: (e: any) => toast.error(e?.message ?? "Analysis failed"),
-    onSuccess: (data: any) => { console.log("[analyze] response keys:", Object.keys(data ?? {})); toast.success("Analysis complete"); },
+    onSuccess: (data: any) => { console.log("[analyze] full response:", JSON.stringify(data).slice(0, 500), "type:", typeof data, "isArr:", Array.isArray(data)); toast.success("Analysis complete"); },
   });
 
   const example = ASSET_OPTIONS.find((a) => a.value === assetType)?.example;
