@@ -161,13 +161,13 @@ function AnalyzePage() {
               <div className="text-xs text-muted-foreground font-mono">{d.exchange ?? assetType.toUpperCase()} · {range} · {d.indicators?.length ?? 0} signals · {d.news?.length ?? 0} headlines</div>
             </div>
             <div className="font-mono text-xs text-muted-foreground">
-              <span className="text-bull">{d.summary.bullish} bull</span> · <span className="text-bear">{d.summary.bearish} bear</span> · {d.summary.neutral} neutral
+              <span className="text-bull">{d.summary?.bullish ?? 0} bull</span> · <span className="text-bear">{d.summary?.bearish ?? 0} bear</span> · {d.summary?.neutral ?? 0} neutral
             </div>
           </div>
 
           <ResultBoxes boxes={d.boxes as any} />
-          <PriceChart candles={d.candles} />
-          <FinalVerdictCard data={{ ...d.final, agreement_score: d.final.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note }} />
+          {d.candles && <PriceChart candles={d.candles} />}
+          {d.final && <FinalVerdictCard data={{ ...d.final, agreement_score: d.final?.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note }} />}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior trader" bias={d.layer1?.bias} conviction={d.layer1?.conviction}>
