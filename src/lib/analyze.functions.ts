@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { AssetSchema, RangeSchema } from "./market.schema";
-import { fetchOhlcvData, fetchNewsData, type NewsItem } from "./market.server";
+import { AssetSchema, RangeSchema, type NewsItem } from "./market.schema";
+import { fetchOhlcvData, fetchNewsData } from "./market.server";
 import { computeAll, summarize, evaluateRisk } from "./indicators.server";
 
 const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
