@@ -26,6 +26,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Patch fetch once to attach Supabase bearer token to server-fn requests
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const w = window as any;
+    if (w.__serverFnFetchPatched) return;
+    w.__serverFnFetchPatched = true;
+    const orig = window.fetch.bind(window);
+    window.fetch = async (input: any, init: any = {}) => {
+      const url = typeof input === "string" ? input : input?.url ?? "";
+      if (url.includes("/_serverFn/")) {
+        try {
+          const { data } = await supabase.auth.getSession();
+          const token = data.session?.access_token;
+          if (token) {
+            const headers = new Headers(init.headers || (typeof input !== "string" ? input.headers : undefined));
+            if (!headers.has("authorization")) headers.set("authorization", `Bearer ${token}`);
+            init = { ...init, headers };
+          }
+        } catch {}
+      }
+      return orig(input, init);
+    };
+  }, []);
+
   return <Ctx.Provider value={{ user: session?.user ?? null, session, loading }}>{children}</Ctx.Provider>;
 }
 
