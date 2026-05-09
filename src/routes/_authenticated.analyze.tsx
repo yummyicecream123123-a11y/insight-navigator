@@ -157,7 +157,7 @@ function AnalyzePage() {
           <div className="flex items-baseline justify-between flex-wrap gap-2">
             <div>
               <div className="font-display text-2xl font-semibold">{d.symbol}</div>
-              <div className="text-xs text-muted-foreground font-mono">{d.exchange ?? assetType.toUpperCase()} · {range} · {d.indicators.length} signals · {d.news?.length ?? 0} headlines</div>
+              <div className="text-xs text-muted-foreground font-mono">{d.exchange ?? assetType.toUpperCase()} · {range} · {d.indicators?.length ?? 0} signals · {d.news?.length ?? 0} headlines</div>
             </div>
             <div className="font-mono text-xs text-muted-foreground">
               <span className="text-bull">{d.summary.bullish} bull</span> · <span className="text-bear">{d.summary.bearish} bear</span> · {d.summary.neutral} neutral
