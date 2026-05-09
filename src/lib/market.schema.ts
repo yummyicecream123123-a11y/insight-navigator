@@ -8,3 +8,4 @@ export type AssetType = z.infer<typeof AssetSchema>;
 export type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
 export type MarketInput = { symbol: string; assetType: AssetType; range: Range };
 export type NewsInput = { symbol: string; assetType: AssetType };
+export type NewsItem = { title: string; publisher?: string; link?: string; published?: number; summary?: string };

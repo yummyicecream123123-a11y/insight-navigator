@@ -3,7 +3,7 @@ import { fetchNewsData, fetchOhlcvData } from "./market.server";
 import type { MarketInput, NewsInput } from "./market.schema";
 
 export type { AssetType, Candle, MarketInput, NewsInput, Range } from "./market.schema";
-export type { NewsItem } from "./market.server";
+export type { NewsItem } from "./market.schema";
 
 export const fetchOhlcv = createServerFn({ method: "POST" })
   .inputValidator((d: MarketInput) => d)

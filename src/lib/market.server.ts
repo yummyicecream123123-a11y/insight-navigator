@@ -1,6 +1,4 @@
-import type { AssetType, Candle, MarketInput, NewsInput, Range } from "./market.schema";
-
-export type NewsItem = { title: string; publisher?: string; link?: string; published?: number; summary?: string };
+import type { AssetType, Candle, MarketInput, NewsInput, NewsItem, Range } from "./market.schema";
 
 const RANGE_MAP: Record<Range, { range: string; interval: string }> = {
   "1D": { range: "1d", interval: "5m" },
