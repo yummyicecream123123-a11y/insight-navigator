@@ -8,6 +8,8 @@ export type Range = z.infer<typeof RangeSchema>;
 export type AssetType = z.infer<typeof AssetSchema>;
 
 export type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
+export type MarketInput = { symbol: string; assetType: AssetType; range: Range };
+export type NewsInput = { symbol: string; assetType: AssetType };
 
 const RANGE_MAP: Record<Range, { range: string; interval: string }> = {
   "1D": { range: "1d", interval: "5m" },
@@ -27,62 +29,66 @@ function normalizeSymbol(symbol: string, asset: AssetType): string {
   return s;
 }
 
-export const fetchOhlcv = createServerFn({ method: "POST" })
-  .inputValidator((d: { symbol: string; assetType: AssetType; range: Range }) => d)
-  .handler(async ({ data }) => {
-    const sym = normalizeSymbol(data.symbol, data.assetType);
-    const { range, interval } = RANGE_MAP[data.range];
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 LovableAnalyzer/1.0" },
-    });
-    if (!res.ok) throw new Error(`Market data fetch failed (${res.status})`);
-    const json: any = await res.json();
-    const result = json?.chart?.result?.[0];
-    if (!result) throw new Error(`No data for symbol "${sym}". Check the symbol.`);
-    const ts: number[] = result.timestamp || [];
-    const q = result.indicators?.quote?.[0] || {};
-    const candles: Candle[] = ts
-      .map((t, i) => ({
-        t: t * 1000,
-        o: q.open?.[i],
-        h: q.high?.[i],
-        l: q.low?.[i],
-        c: q.close?.[i],
-        v: q.volume?.[i] ?? 0,
-      }))
-      .filter((c) => c.o != null && c.c != null && c.h != null && c.l != null);
-    if (!candles.length) throw new Error("No candle data returned");
-    const meta = result.meta || {};
-    return {
-      symbol: sym,
-      currency: meta.currency as string | undefined,
-      exchange: meta.fullExchangeName as string | undefined,
-      candles,
-    };
+export async function fetchOhlcvData(data: MarketInput) {
+  const sym = normalizeSymbol(data.symbol, data.assetType);
+  const { range, interval } = RANGE_MAP[data.range];
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 LovableAnalyzer/1.0" },
   });
+  if (!res.ok) throw new Error(`Market data fetch failed (${res.status})`);
+  const json: any = await res.json();
+  const result = json?.chart?.result?.[0];
+  if (!result) throw new Error(`No data for symbol "${sym}". Check the symbol.`);
+  const ts: number[] = result.timestamp || [];
+  const q = result.indicators?.quote?.[0] || {};
+  const candles: Candle[] = ts
+    .map((t, i) => ({
+      t: t * 1000,
+      o: q.open?.[i],
+      h: q.high?.[i],
+      l: q.low?.[i],
+      c: q.close?.[i],
+      v: q.volume?.[i] ?? 0,
+    }))
+    .filter((c) => c.o != null && c.c != null && c.h != null && c.l != null);
+  if (!candles.length) throw new Error("No candle data returned");
+  const meta = result.meta || {};
+  return {
+    symbol: sym,
+    currency: meta.currency as string | undefined,
+    exchange: meta.fullExchangeName as string | undefined,
+    candles,
+  };
+}
+
+export const fetchOhlcv = createServerFn({ method: "POST" })
+  .inputValidator((d: MarketInput) => d)
+  .handler(async ({ data }) => fetchOhlcvData(data));
 
 export type NewsItem = { title: string; publisher?: string; link?: string; published?: number; summary?: string };
 
+export async function fetchNewsData(data: NewsInput): Promise<NewsItem[]> {
+  const sym = normalizeSymbol(data.symbol, data.assetType);
+  try {
+    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(sym)}&newsCount=12&quotesCount=0`;
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 LovableAnalyzer/1.0" } });
+    if (!res.ok) return [];
+    const json: any = await res.json();
+    const news: any[] = Array.isArray(json?.news) ? json.news : [];
+    return news.slice(0, 10).map((n) => ({
+      title: String(n.title ?? ""),
+      publisher: n.publisher,
+      link: n.link,
+      published: typeof n.providerPublishTime === "number" ? n.providerPublishTime * 1000 : undefined,
+      summary: n.summary,
+    })).filter((n) => n.title);
+  } catch (e) {
+    console.error("fetchNews failed:", e);
+    return [];
+  }
+}
+
 export const fetchNews = createServerFn({ method: "POST" })
-  .inputValidator((d: { symbol: string; assetType: AssetType }) => d)
-  .handler(async ({ data }): Promise<NewsItem[]> => {
-    const sym = normalizeSymbol(data.symbol, data.assetType);
-    try {
-      const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(sym)}&newsCount=12&quotesCount=0`;
-      const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 LovableAnalyzer/1.0" } });
-      if (!res.ok) return [];
-      const json: any = await res.json();
-      const news: any[] = Array.isArray(json?.news) ? json.news : [];
-      return news.slice(0, 10).map((n) => ({
-        title: String(n.title ?? ""),
-        publisher: n.publisher,
-        link: n.link,
-        published: typeof n.providerPublishTime === "number" ? n.providerPublishTime * 1000 : undefined,
-        summary: n.summary,
-      })).filter((n) => n.title);
-    } catch (e) {
-      console.error("fetchNews failed:", e);
-      return [];
-    }
-  });
+  .inputValidator((d: NewsInput) => d)
+  .handler(async ({ data }) => fetchNewsData(data));
