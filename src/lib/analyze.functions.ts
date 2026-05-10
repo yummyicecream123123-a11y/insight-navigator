@@ -184,7 +184,7 @@ function buildBoxes(opts: {
     sentiment: { label: "News Sentiment", value: layer4 ? `${(layer4.sentiment_score * 100).toFixed(0)}` : "—", tone: (layer4?.sentiment_score ?? 0) > 0.1 ? "bull" : (layer4?.sentiment_score ?? 0) < -0.1 ? "bear" : "neutral", count: news.length },
     consensus: { label: "Consensus", value: `${buyCount}B / ${holdCount}H / ${sellCount}S`, tone: buyCount > sellCount ? "bull" : sellCount > buyCount ? "bear" : "neutral" },
     confidence: { label: "Confidence", value: `${Math.round((final?.confidence ?? 0) * 100)}%`, tone: (final?.confidence ?? 0) > 0.65 ? "bull" : (final?.confidence ?? 0) < 0.4 ? "bear" : "neutral" },
-    horizon: { label: "Time Horizon", value: final?.time_horizon ?? "swing", tone: "neutral" },
+    horizon: { label: "Forecast Window", value: final?.forecast_window ?? final?.time_horizon ?? "—", tone: "neutral" },
     rr: { label: "Risk / Reward", value: final?.risk_reward ?? "—", tone: "neutral" },
   };
 }
