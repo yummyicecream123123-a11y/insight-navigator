@@ -52,7 +52,10 @@ export function FinalVerdictCard({ data }: { data: any }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-[11px] font-mono uppercase tracking-widest opacity-70">Final Verdict</div>
-          <div className="font-display text-4xl font-semibold mt-1">{v}</div>
+          <div className="font-display text-4xl md:text-5xl font-semibold mt-1 tracking-tight">{v}</div>
+          {data.forecast_window && (
+            <div className="text-xs text-muted-foreground mt-1">Forecast window: <span className="font-mono text-foreground">{data.forecast_window}</span> (5× input range)</div>
+          )}
         </div>
         <div className="text-right">
           <div className="text-xs text-muted-foreground">Confidence</div>
