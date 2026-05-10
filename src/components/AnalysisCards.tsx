@@ -3,25 +3,33 @@ type Verdict = "Strong Buy" | "Buy" | "Hold" | "Sell" | "Strong Sell";
 
 const biasColor = (b: Bias) => b === "bullish" ? "bg-bull/15 text-bull" : b === "bearish" ? "bg-bear/15 text-bear" : "bg-muted text-muted-foreground";
 
-export function LayerCard({ tag, title, persona, bias, conviction, children }: {
+export function LayerCard({ tag, title, persona, author, credentials, bias, conviction, children }: {
   tag: string; title: string; persona: string;
+  author?: string; credentials?: string;
   bias?: Bias; conviction?: number; children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 transition-colors">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <div className="text-[11px] font-mono uppercase tracking-widest text-primary">{tag}</div>
           <h3 className="font-display text-lg font-semibold mt-0.5">{title}</h3>
           <div className="text-xs text-muted-foreground">{persona}</div>
         </div>
         {bias && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className={`text-[11px] uppercase font-mono px-2 py-1 rounded ${biasColor(bias)}`}>{bias}</span>
             {conviction != null && <span className="font-mono text-xs text-muted-foreground">{(conviction * 100).toFixed(0)}%</span>}
           </div>
         )}
       </div>
+      {(author || credentials) && (
+        <div className="mt-3 rounded-md border border-border/60 bg-background/40 px-3 py-2">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Cited analyst</div>
+          <div className="text-sm font-medium mt-0.5">{author ?? "—"}</div>
+          {credentials && <div className="text-[11px] text-muted-foreground italic">{credentials}</div>}
+        </div>
+      )}
       <div className="mt-4 text-sm space-y-3">{children}</div>
     </div>
   );
@@ -44,7 +52,10 @@ export function FinalVerdictCard({ data }: { data: any }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-[11px] font-mono uppercase tracking-widest opacity-70">Final Verdict</div>
-          <div className="font-display text-4xl font-semibold mt-1">{v}</div>
+          <div className="font-display text-4xl md:text-5xl font-semibold mt-1 tracking-tight">{v}</div>
+          {data.forecast_window && (
+            <div className="text-xs text-muted-foreground mt-1">Forecast window: <span className="font-mono text-foreground">{data.forecast_window}</span> (5× input range)</div>
+          )}
         </div>
         <div className="text-right">
           <div className="text-xs text-muted-foreground">Confidence</div>

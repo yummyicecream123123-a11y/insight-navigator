@@ -11,6 +11,8 @@ import { IndicatorTable } from "@/components/IndicatorTable";
 import { LayerCard, FinalVerdictCard } from "@/components/AnalysisCards";
 import { ResultBoxes } from "@/components/ResultBoxes";
 import { NewsList } from "@/components/NewsList";
+import { SymbolAutocomplete, isValidSymbolFormat } from "@/components/SymbolAutocomplete";
+import { Timeline } from "@/components/Timeline";
 
 type SearchParams = { symbol?: string; assetType?: string; range?: string };
 export const Route = createFileRoute("/_authenticated/analyze")({
@@ -50,6 +52,7 @@ function AnalyzePage() {
     mutationFn: async () => {
       const cleanSym = symbol.trim().toUpperCase();
       if (!cleanSym) throw new Error("Enter a symbol");
+      if (!isValidSymbolFormat(cleanSym)) throw new Error("Symbol contains invalid characters. Use letters, numbers, and . - = ^ only.");
       let imageBase64: string | undefined;
       let imageMime: string | undefined;
       let imagePath: string | undefined;
@@ -81,16 +84,21 @@ function AnalyzePage() {
   const raw: any = m.data;
   const d: any = raw?.indicators || raw?.summary || raw?.candles ? raw : (raw?.result ?? raw?.data ?? raw);
 
+  const symbolValid = !symbol || isValidSymbolFormat(symbol.trim());
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-semibold">Analyze</h1>
-        <p className="text-sm text-muted-foreground mt-1">Pick an asset, run the 4-layer consensus pipeline.</p>
+      <div className="mb-8 flex items-baseline justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Analyze</h1>
+          <p className="text-sm text-muted-foreground mt-1">Live market data · 4-layer expert consensus · cited analysts.</p>
+        </div>
+        <div className="text-[11px] font-mono uppercase tracking-widest text-primary">Premium pipeline</div>
       </div>
 
       <form
         onSubmit={(e) => { e.preventDefault(); m.mutate(); }}
-        className="rounded-xl border border-border bg-card p-5 space-y-4"
+        className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/40 p-5 space-y-4 shadow-xl"
       >
         <div className="grid md:grid-cols-3 gap-3">
           <div>
@@ -102,20 +110,27 @@ function AnalyzePage() {
           </div>
           <div>
             <label className="text-xs uppercase tracking-widest text-muted-foreground">Symbol</label>
-            <input value={symbol} onChange={(e) => setSymbol(e.target.value)}
-              placeholder={`e.g. ${example}`}
-              className="mt-1 w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono uppercase" />
+            <div className="mt-1">
+              <SymbolAutocomplete
+                value={symbol}
+                onChange={setSymbol}
+                placeholder={`e.g. ${example}`}
+                invalid={!symbolValid}
+              />
+            </div>
+            {!symbolValid && <div className="mt-1 text-[11px] text-bear">Use letters, numbers, and . - = ^ only.</div>}
           </div>
           <div>
             <label className="text-xs uppercase tracking-widest text-muted-foreground">Time range</label>
             <div className="mt-1 flex flex-wrap gap-1">
               {RANGES.map((r) => (
                 <button key={r} type="button" onClick={() => setRange(r)}
-                  className={`px-2.5 py-1.5 rounded text-xs font-mono ${range === r ? "bg-primary text-primary-foreground" : "border border-border bg-background hover:bg-accent"}`}>
+                  className={`px-2.5 py-1.5 rounded text-xs font-mono transition-all ${range === r ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "border border-border bg-background hover:bg-accent"}`}>
                   {r}
                 </button>
               ))}
             </div>
+            <div className="mt-1.5 text-[11px] text-muted-foreground">Forecast window: <span className="font-mono text-primary">{({"1D":"5 trading days","5D":"25 trading days","1M":"5 months","3M":"15 months","6M":"30 months","1Y":"5 years","5Y":"25 years","MAX":"extended"} as Record<string,string>)[range]}</span> (5×)</div>
           </div>
         </div>
 
@@ -127,9 +142,9 @@ function AnalyzePage() {
           {imageFile && <div className="mt-1 text-xs text-muted-foreground">{imageFile.name} · {(imageFile.size/1024).toFixed(0)}KB</div>}
         </div>
 
-        <button type="submit" disabled={m.isPending}
-          className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50">
-          {m.isPending ? "Running 4-layer consensus…" : "Run analysis"}
+        <button type="submit" disabled={m.isPending || !symbolValid || !symbol.trim()}
+          className="w-full rounded-md bg-gradient-to-r from-primary to-primary/80 px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 disabled:opacity-50 hover:shadow-primary/40 transition-shadow">
+          {m.isPending ? "Running 4-layer consensus…" : "Run analysis →"}
         </button>
       </form>
 
@@ -167,10 +182,14 @@ function AnalyzePage() {
 
           <ResultBoxes boxes={d.boxes as any} />
           {d.candles && <PriceChart candles={d.candles} />}
-          {d.final && <FinalVerdictCard data={{ ...d.final, agreement_score: d.final?.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note }} />}
+          {d.final && <FinalVerdictCard data={{ ...d.final, agreement_score: d.final?.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note, forecast_window: d.final?.forecast_window ?? d.forecastWindow }} />}
+
+          {(d.timeline || d.layer3?.timeline) && (
+            <Timeline steps={d.timeline ?? d.layer3?.timeline} totalMs={d.totalMs ?? d.layer3?.totalMs} />
+          )}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior trader" bias={d.layer1?.bias} conviction={d.layer1?.conviction}>
+            <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior trader" author={d.layer1?.author_name} credentials={d.layer1?.author_credentials} bias={d.layer1?.bias} conviction={d.layer1?.conviction}>
               <p>{d.layer1?.thesis}</p>
               <div>
                 <div className="text-xs text-muted-foreground">Key levels</div>
@@ -182,7 +201,7 @@ function AnalyzePage() {
               </div>
             </LayerCard>
 
-            <LayerCard tag="Layer 2" title="Pattern Confirmation" persona="Quant technician" bias={d.layer2?.bias} conviction={d.layer2?.conviction}>
+            <LayerCard tag="Layer 2" title="Pattern Confirmation" persona="Quant technician" author={d.layer2?.author_name} credentials={d.layer2?.author_credentials} bias={d.layer2?.bias} conviction={d.layer2?.conviction}>
               <p>{d.layer2?.summary}</p>
               <div>
                 <div className="text-xs text-bull">Confirming</div>
@@ -200,7 +219,7 @@ function AnalyzePage() {
               )}
             </LayerCard>
 
-            <LayerCard tag="Layer 3" title="Dynamics & Liquidity" persona="Microstructure analyst" bias={d.layer3?.bias} conviction={d.layer3?.conviction}>
+            <LayerCard tag="Layer 3" title="Dynamics & Liquidity" persona="Microstructure analyst" author={d.layer3?.author_name} credentials={d.layer3?.author_credentials} bias={d.layer3?.bias} conviction={d.layer3?.conviction}>
               <p><span className="text-xs text-muted-foreground">Dynamics:</span> {d.layer3?.market_dynamics}</p>
               <p><span className="text-xs text-muted-foreground">Liquidity:</span> {d.layer3?.liquidity_note}</p>
               <p><span className="text-xs text-muted-foreground">Volatility:</span> {d.layer3?.volatility_note}</p>
@@ -209,7 +228,7 @@ function AnalyzePage() {
               )}
             </LayerCard>
 
-            <LayerCard tag="Layer 4" title="News & Sentiment" persona="Macro / political analyst" bias={d.layer4?.bias} conviction={d.layer4?.conviction}>
+            <LayerCard tag="Layer 4" title="News & Sentiment" persona="Macro / political analyst" author={d.layer4?.author_name} credentials={d.layer4?.author_credentials} bias={d.layer4?.bias} conviction={d.layer4?.conviction}>
               <p>{d.layer4?.summary}</p>
               {d.layer4?.political_drama && <p className="text-xs"><span className="text-muted-foreground">Political:</span> {d.layer4.political_drama}</p>}
               <div>
