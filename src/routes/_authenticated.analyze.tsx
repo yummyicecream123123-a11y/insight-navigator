@@ -125,11 +125,12 @@ function AnalyzePage() {
             <div className="mt-1 flex flex-wrap gap-1">
               {RANGES.map((r) => (
                 <button key={r} type="button" onClick={() => setRange(r)}
-                  className={`px-2.5 py-1.5 rounded text-xs font-mono ${range === r ? "bg-primary text-primary-foreground" : "border border-border bg-background hover:bg-accent"}`}>
+                  className={`px-2.5 py-1.5 rounded text-xs font-mono transition-all ${range === r ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "border border-border bg-background hover:bg-accent"}`}>
                   {r}
                 </button>
               ))}
             </div>
+            <div className="mt-1.5 text-[11px] text-muted-foreground">Forecast window: <span className="font-mono text-primary">{({"1D":"5 trading days","5D":"25 trading days","1M":"5 months","3M":"15 months","6M":"30 months","1Y":"5 years","5Y":"25 years","MAX":"extended"} as Record<string,string>)[range]}</span> (5×)</div>
           </div>
         </div>
 
