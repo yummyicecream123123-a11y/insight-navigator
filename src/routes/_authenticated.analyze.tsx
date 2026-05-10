@@ -52,6 +52,7 @@ function AnalyzePage() {
     mutationFn: async () => {
       const cleanSym = symbol.trim().toUpperCase();
       if (!cleanSym) throw new Error("Enter a symbol");
+      if (!isValidSymbolFormat(cleanSym)) throw new Error("Symbol contains invalid characters. Use letters, numbers, and . - = ^ only.");
       let imageBase64: string | undefined;
       let imageMime: string | undefined;
       let imagePath: string | undefined;
