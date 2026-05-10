@@ -41,12 +41,18 @@ async function callAI(opts: {
   try { return JSON.parse(tc.function.arguments); } catch { throw new Error("AI returned invalid JSON"); }
 }
 
+const authorProps = {
+  author_name: { type: "string", description: "Realistic full name of the analyst persona writing this opinion." },
+  author_credentials: { type: "string", description: "Short credentials line (firm, role, years of experience). E.g. 'Chief Strategist, Morgan Stanley · 22y equities'." },
+};
+
 const layer1Schema = {
   name: "expert_opinion",
   description: "Senior discretionary trader's read on the chart and price action.",
   parameters: {
     type: "object",
     properties: {
+      ...authorProps,
       bias: { type: "string", enum: ["bullish", "bearish", "neutral"] },
       conviction: { type: "number", minimum: 0, maximum: 1 },
       recommendation: { type: "string", enum: ["Buy", "Sell", "Hold"] },
@@ -54,7 +60,7 @@ const layer1Schema = {
       key_levels: { type: "array", items: { type: "string" } },
       risks: { type: "array", items: { type: "string" } },
     },
-    required: ["bias", "conviction", "recommendation", "thesis", "key_levels", "risks"],
+    required: ["author_name", "author_credentials", "bias", "conviction", "recommendation", "thesis", "key_levels", "risks"],
   },
 };
 
@@ -64,6 +70,7 @@ const layer2Schema = {
   parameters: {
     type: "object",
     properties: {
+      ...authorProps,
       bias: { type: "string", enum: ["bullish", "bearish", "neutral"] },
       conviction: { type: "number", minimum: 0, maximum: 1 },
       recommendation: { type: "string", enum: ["Buy", "Sell", "Hold"] },
@@ -73,7 +80,7 @@ const layer2Schema = {
       divergences: { type: "array", items: { type: "string" } },
       summary: { type: "string" },
     },
-    required: ["bias", "conviction", "recommendation", "detected_patterns", "confirming", "contradicting", "divergences", "summary"],
+    required: ["author_name", "author_credentials", "bias", "conviction", "recommendation", "detected_patterns", "confirming", "contradicting", "divergences", "summary"],
   },
 };
 
@@ -83,6 +90,7 @@ const layer3Schema = {
   parameters: {
     type: "object",
     properties: {
+      ...authorProps,
       bias: { type: "string", enum: ["bullish", "bearish", "neutral"] },
       conviction: { type: "number", minimum: 0, maximum: 1 },
       recommendation: { type: "string", enum: ["Buy", "Sell", "Hold"] },
@@ -91,7 +99,7 @@ const layer3Schema = {
       market_dynamics: { type: "string" },
       key_risks: { type: "array", items: { type: "string" } },
     },
-    required: ["bias", "conviction", "recommendation", "liquidity_note", "volatility_note", "market_dynamics", "key_risks"],
+    required: ["author_name", "author_credentials", "bias", "conviction", "recommendation", "liquidity_note", "volatility_note", "market_dynamics", "key_risks"],
   },
 };
 
@@ -101,6 +109,7 @@ const layer4Schema = {
   parameters: {
     type: "object",
     properties: {
+      ...authorProps,
       bias: { type: "string", enum: ["bullish", "bearish", "neutral"] },
       conviction: { type: "number", minimum: 0, maximum: 1 },
       recommendation: { type: "string", enum: ["Buy", "Sell", "Hold"] },
@@ -110,7 +119,7 @@ const layer4Schema = {
       catalysts: { type: "array", items: { type: "string" } },
       summary: { type: "string" },
     },
-    required: ["bias", "conviction", "recommendation", "sentiment_score", "key_headlines", "political_drama", "catalysts", "summary"],
+    required: ["author_name", "author_credentials", "bias", "conviction", "recommendation", "sentiment_score", "key_headlines", "political_drama", "catalysts", "summary"],
   },
 };
 
@@ -125,6 +134,7 @@ const finalSchema = {
       agreement_score: { type: "number", minimum: 0, maximum: 1 },
       consensus_bias: { type: "string", enum: ["bullish", "bearish", "neutral"] },
       time_horizon: { type: "string", enum: ["intraday", "swing", "position", "long-term"] },
+      forecast_window: { type: "string", description: "Concrete forecast window (5x the input range, e.g. '5 days', '5 months'). Aligns recommendation to that window." },
       entry_zone: { type: "string" },
       stop_loss: { type: "string" },
       targets: { type: "array", items: { type: "string" } },
@@ -133,11 +143,14 @@ const finalSchema = {
       rationale: { type: "string" },
       conflicts: { type: "array", items: { type: "string" } },
     },
-    required: ["verdict", "confidence", "agreement_score", "consensus_bias", "time_horizon", "entry_zone", "stop_loss", "targets", "position_sizing", "risk_reward", "rationale", "conflicts"],
+    required: ["verdict", "confidence", "agreement_score", "consensus_bias", "time_horizon", "forecast_window", "entry_zone", "stop_loss", "targets", "position_sizing", "risk_reward", "rationale", "conflicts"],
   },
 };
 
-const InputSchema = z.object({
+const FORECAST_MAP: Record<string, string> = {
+  "1D": "5 trading days", "5D": "25 trading days", "1M": "5 months", "3M": "15 months",
+  "6M": "30 months", "1Y": "5 years", "5Y": "25 years", "MAX": "extended (5x history)",
+};
   symbol: z.string().min(1).max(20),
   assetType: AssetSchema,
   range: RangeSchema,
