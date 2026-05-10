@@ -151,7 +151,9 @@ const FORECAST_MAP: Record<string, string> = {
   "1D": "5 trading days", "5D": "25 trading days", "1M": "5 months", "3M": "15 months",
   "6M": "30 months", "1Y": "5 years", "5Y": "25 years", "MAX": "extended (5x history)",
 };
-  symbol: z.string().min(1).max(20),
+
+const InputSchema = z.object({
+  symbol: z.string().min(1).max(20).regex(/^[A-Z0-9.\-=^]+$/i, "Invalid symbol format"),
   assetType: AssetSchema,
   range: RangeSchema,
   imageBase64: z.string().optional(),
