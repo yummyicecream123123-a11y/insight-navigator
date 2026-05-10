@@ -84,16 +84,21 @@ function AnalyzePage() {
   const raw: any = m.data;
   const d: any = raw?.indicators || raw?.summary || raw?.candles ? raw : (raw?.result ?? raw?.data ?? raw);
 
+  const symbolValid = !symbol || isValidSymbolFormat(symbol.trim());
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-semibold">Analyze</h1>
-        <p className="text-sm text-muted-foreground mt-1">Pick an asset, run the 4-layer consensus pipeline.</p>
+      <div className="mb-8 flex items-baseline justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Analyze</h1>
+          <p className="text-sm text-muted-foreground mt-1">Live market data · 4-layer expert consensus · cited analysts.</p>
+        </div>
+        <div className="text-[11px] font-mono uppercase tracking-widest text-primary">Premium pipeline</div>
       </div>
 
       <form
         onSubmit={(e) => { e.preventDefault(); m.mutate(); }}
-        className="rounded-xl border border-border bg-card p-5 space-y-4"
+        className="rounded-2xl border border-border bg-gradient-to-br from-card to-card/40 p-5 space-y-4 shadow-xl"
       >
         <div className="grid md:grid-cols-3 gap-3">
           <div>
@@ -105,9 +110,15 @@ function AnalyzePage() {
           </div>
           <div>
             <label className="text-xs uppercase tracking-widest text-muted-foreground">Symbol</label>
-            <input value={symbol} onChange={(e) => setSymbol(e.target.value)}
-              placeholder={`e.g. ${example}`}
-              className="mt-1 w-full rounded-md border border-border bg-input px-3 py-2 text-sm font-mono uppercase" />
+            <div className="mt-1">
+              <SymbolAutocomplete
+                value={symbol}
+                onChange={setSymbol}
+                placeholder={`e.g. ${example}`}
+                invalid={!symbolValid}
+              />
+            </div>
+            {!symbolValid && <div className="mt-1 text-[11px] text-bear">Use letters, numbers, and . - = ^ only.</div>}
           </div>
           <div>
             <label className="text-xs uppercase tracking-widest text-muted-foreground">Time range</label>
