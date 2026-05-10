@@ -39,10 +39,12 @@ function cacheSet<T>(key: string, value: T, ttl: number) {
   }
 }
 
-export async function fetchOhlcvData(data: MarketInput) {
+export type OhlcvResult = { symbol: string; currency?: string; exchange?: string; candles: Candle[] };
+
+export async function fetchOhlcvData(data: MarketInput): Promise<OhlcvResult> {
   const sym = normalizeSymbol(data.symbol, data.assetType);
   const key = `ohlcv:${sym}:${data.range}`;
-  const cached = cacheGet<Awaited<ReturnType<typeof fetchOhlcvData>>>(key);
+  const cached = cacheGet<OhlcvResult>(key);
   if (cached) return cached;
 
   const { range, interval } = RANGE_MAP[data.range];
