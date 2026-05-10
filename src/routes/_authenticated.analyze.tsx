@@ -142,9 +142,9 @@ function AnalyzePage() {
           {imageFile && <div className="mt-1 text-xs text-muted-foreground">{imageFile.name} · {(imageFile.size/1024).toFixed(0)}KB</div>}
         </div>
 
-        <button type="submit" disabled={m.isPending}
-          className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50">
-          {m.isPending ? "Running 4-layer consensus…" : "Run analysis"}
+        <button type="submit" disabled={m.isPending || !symbolValid || !symbol.trim()}
+          className="w-full rounded-md bg-gradient-to-r from-primary to-primary/80 px-4 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 disabled:opacity-50 hover:shadow-primary/40 transition-shadow">
+          {m.isPending ? "Running 4-layer consensus…" : "Run analysis →"}
         </button>
       </form>
 
