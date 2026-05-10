@@ -182,10 +182,14 @@ function AnalyzePage() {
 
           <ResultBoxes boxes={d.boxes as any} />
           {d.candles && <PriceChart candles={d.candles} />}
-          {d.final && <FinalVerdictCard data={{ ...d.final, agreement_score: d.final?.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note }} />}
+          {d.final && <FinalVerdictCard data={{ ...d.final, agreement_score: d.final?.agreement_score, market_dynamics: d.layer3?.market_dynamics, liquidity_note: d.layer3?.liquidity_note, forecast_window: d.final?.forecast_window ?? d.forecastWindow }} />}
+
+          {(d.timeline || d.layer3?.timeline) && (
+            <Timeline steps={d.timeline ?? d.layer3?.timeline} totalMs={d.totalMs ?? d.layer3?.totalMs} />
+          )}
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior trader" bias={d.layer1?.bias} conviction={d.layer1?.conviction}>
+            <LayerCard tag="Layer 1" title="Expert Opinion" persona="Senior trader" author={d.layer1?.author_name} credentials={d.layer1?.author_credentials} bias={d.layer1?.bias} conviction={d.layer1?.conviction}>
               <p>{d.layer1?.thesis}</p>
               <div>
                 <div className="text-xs text-muted-foreground">Key levels</div>
@@ -197,7 +201,7 @@ function AnalyzePage() {
               </div>
             </LayerCard>
 
-            <LayerCard tag="Layer 2" title="Pattern Confirmation" persona="Quant technician" bias={d.layer2?.bias} conviction={d.layer2?.conviction}>
+            <LayerCard tag="Layer 2" title="Pattern Confirmation" persona="Quant technician" author={d.layer2?.author_name} credentials={d.layer2?.author_credentials} bias={d.layer2?.bias} conviction={d.layer2?.conviction}>
               <p>{d.layer2?.summary}</p>
               <div>
                 <div className="text-xs text-bull">Confirming</div>
@@ -215,7 +219,7 @@ function AnalyzePage() {
               )}
             </LayerCard>
 
-            <LayerCard tag="Layer 3" title="Dynamics & Liquidity" persona="Microstructure analyst" bias={d.layer3?.bias} conviction={d.layer3?.conviction}>
+            <LayerCard tag="Layer 3" title="Dynamics & Liquidity" persona="Microstructure analyst" author={d.layer3?.author_name} credentials={d.layer3?.author_credentials} bias={d.layer3?.bias} conviction={d.layer3?.conviction}>
               <p><span className="text-xs text-muted-foreground">Dynamics:</span> {d.layer3?.market_dynamics}</p>
               <p><span className="text-xs text-muted-foreground">Liquidity:</span> {d.layer3?.liquidity_note}</p>
               <p><span className="text-xs text-muted-foreground">Volatility:</span> {d.layer3?.volatility_note}</p>
@@ -224,7 +228,7 @@ function AnalyzePage() {
               )}
             </LayerCard>
 
-            <LayerCard tag="Layer 4" title="News & Sentiment" persona="Macro / political analyst" bias={d.layer4?.bias} conviction={d.layer4?.conviction}>
+            <LayerCard tag="Layer 4" title="News & Sentiment" persona="Macro / political analyst" author={d.layer4?.author_name} credentials={d.layer4?.author_credentials} bias={d.layer4?.bias} conviction={d.layer4?.conviction}>
               <p>{d.layer4?.summary}</p>
               {d.layer4?.political_drama && <p className="text-xs"><span className="text-muted-foreground">Political:</span> {d.layer4.political_drama}</p>}
               <div>
