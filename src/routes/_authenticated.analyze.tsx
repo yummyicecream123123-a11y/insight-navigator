@@ -13,6 +13,7 @@ import { ResultBoxes } from "@/components/ResultBoxes";
 import { NewsList } from "@/components/NewsList";
 import { SymbolAutocomplete, isValidSymbolFormat } from "@/components/SymbolAutocomplete";
 import { Timeline } from "@/components/Timeline";
+import { IndicatorBreakdown } from "@/components/IndicatorBreakdown";
 
 type SearchParams = { symbol?: string; assetType?: string; range?: string };
 export const Route = createFileRoute("/_authenticated/analyze")({
@@ -246,6 +247,8 @@ function AnalyzePage() {
             <h2 className="font-display text-xl font-semibold mb-3">Recent headlines</h2>
             <NewsList items={d.news} />
           </div>
+
+          <IndicatorBreakdown indicators={d.indicators ?? []} news={d.news} />
 
           <div>
             <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({d.indicators?.length ?? 0})</h2>
