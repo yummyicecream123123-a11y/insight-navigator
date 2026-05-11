@@ -13,6 +13,7 @@ import { ResultBoxes } from "@/components/ResultBoxes";
 import { NewsList } from "@/components/NewsList";
 import { SymbolAutocomplete, isValidSymbolFormat } from "@/components/SymbolAutocomplete";
 import { Timeline } from "@/components/Timeline";
+import { IndicatorBreakdown } from "@/components/IndicatorBreakdown";
 
 type SearchParams = { symbol?: string; assetType?: string; range?: string };
 export const Route = createFileRoute("/_authenticated/analyze")({
