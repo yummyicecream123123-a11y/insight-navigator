@@ -248,6 +248,8 @@ function AnalyzePage() {
             <NewsList items={d.news} />
           </div>
 
+          <IndicatorBreakdown indicators={d.indicators ?? []} news={d.news} />
+
           <div>
             <h2 className="font-display text-xl font-semibold mb-3">Indicator table ({d.indicators?.length ?? 0})</h2>
             <IndicatorTable items={d.indicators ?? []} />
