@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const RangeSchema = z.enum(["1D", "5D", "1M", "3M", "6M", "1Y", "5Y", "MAX"]);
+export const RangeSchema = z.enum(["1m", "5m", "10m", "1h", "3h", "1D", "5D", "1M", "3M", "6M", "1Y", "5Y", "MAX"]);
 export const AssetSchema = z.enum(["stock", "etf", "crypto", "forex", "commodity"]);
 
 export type Range = z.infer<typeof RangeSchema>;

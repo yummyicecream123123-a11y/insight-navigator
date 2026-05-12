@@ -1,6 +1,11 @@
 import type { AssetType, Candle, MarketInput, NewsInput, NewsItem, Range } from "./market.schema";
 
 const RANGE_MAP: Record<Range, { range: string; interval: string }> = {
+  "1m": { range: "1d", interval: "1m" },
+  "5m": { range: "5d", interval: "2m" },
+  "10m": { range: "5d", interval: "5m" },
+  "1h": { range: "5d", interval: "15m" },
+  "3h": { range: "1mo", interval: "30m" },
   "1D": { range: "1d", interval: "5m" },
   "5D": { range: "5d", interval: "30m" },
   "1M": { range: "1mo", interval: "1h" },

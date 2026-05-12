@@ -14,6 +14,7 @@ import { NewsList } from "@/components/NewsList";
 import { SymbolAutocomplete, isValidSymbolFormat } from "@/components/SymbolAutocomplete";
 import { Timeline } from "@/components/Timeline";
 import { IndicatorBreakdown } from "@/components/IndicatorBreakdown";
+import { Backtest } from "@/components/Backtest";
 
 type SearchParams = { symbol?: string; assetType?: string; range?: string };
 export const Route = createFileRoute("/_authenticated/analyze")({
@@ -32,7 +33,7 @@ const ASSET_OPTIONS = [
   { value: "forex", label: "Forex", example: "EURUSD" },
   { value: "commodity", label: "Commodity", example: "GC=F" },
 ] as const;
-const RANGES = ["1D","5D","1M","3M","6M","1Y","5Y","MAX"] as const;
+const RANGES = ["1m","5m","10m","1h","3h","1D","5D","1M","3M","6M","1Y","5Y","MAX"] as const;
 
 const asArr = <T,>(v: any): T[] => Array.isArray(v) ? v : [];
 
@@ -131,7 +132,7 @@ function AnalyzePage() {
                 </button>
               ))}
             </div>
-            <div className="mt-1.5 text-[11px] text-muted-foreground">Forecast window: <span className="font-mono text-primary">{({"1D":"5 trading days","5D":"25 trading days","1M":"5 months","3M":"15 months","6M":"30 months","1Y":"5 years","5Y":"25 years","MAX":"extended"} as Record<string,string>)[range]}</span> (5×)</div>
+            <div className="mt-1.5 text-[11px] text-muted-foreground">Forecast window: <span className="font-mono text-primary">{({"1m":"5 minutes","5m":"25 minutes","10m":"50 minutes","1h":"5 hours","3h":"15 hours","1D":"5 trading days","5D":"25 trading days","1M":"5 months","3M":"15 months","6M":"30 months","1Y":"5 years","5Y":"25 years","MAX":"extended"} as Record<string,string>)[range]}</span> (5×)</div>
           </div>
         </div>
 
@@ -256,6 +257,10 @@ function AnalyzePage() {
           </div>
         </div>
       )}
+
+      <div className="mt-10">
+        <Backtest />
+      </div>
     </main>
   );
 }
