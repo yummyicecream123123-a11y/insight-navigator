@@ -148,6 +148,7 @@ const finalSchema = {
 };
 
 const FORECAST_MAP: Record<string, string> = {
+  "1m": "5 minutes", "5m": "25 minutes", "10m": "50 minutes", "1h": "5 hours", "3h": "15 hours",
   "1D": "5 trading days", "5D": "25 trading days", "1M": "5 months", "3M": "15 months",
   "6M": "30 months", "1Y": "5 years", "5Y": "25 years", "MAX": "extended (5x history)",
 };
