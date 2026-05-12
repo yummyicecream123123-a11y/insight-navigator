@@ -257,6 +257,10 @@ function AnalyzePage() {
           </div>
         </div>
       )}
+
+      <div className="mt-10">
+        <Backtest />
+      </div>
     </main>
   );
 }
