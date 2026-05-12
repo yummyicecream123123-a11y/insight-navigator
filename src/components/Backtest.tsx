@@ -3,23 +3,44 @@ import { useServerFn } from "@tanstack/react-start";
 import { runBacktestTrial } from "@/lib/analyze.functions";
 import type { Range } from "@/lib/market.schema";
 
-// 15 diverse, liquid tickers across sectors
+// 30 diverse, liquid tickers across sectors, asset classes, and regions
 const TICKERS: { symbol: string; assetType: "stock" | "etf" | "crypto" | "forex" | "commodity" }[] = [
+  // Mega-cap tech
   { symbol: "AAPL",   assetType: "stock" },
   { symbol: "MSFT",   assetType: "stock" },
   { symbol: "NVDA",   assetType: "stock" },
-  { symbol: "TSLA",   assetType: "stock" },
-  { symbol: "AMZN",   assetType: "stock" },
-  { symbol: "META",   assetType: "stock" },
   { symbol: "GOOGL",  assetType: "stock" },
+  { symbol: "META",   assetType: "stock" },
+  { symbol: "AMZN",   assetType: "stock" },
+  { symbol: "TSLA",   assetType: "stock" },
+  { symbol: "AMD",    assetType: "stock" },
+  // Financials / healthcare / consumer / energy
   { symbol: "JPM",    assetType: "stock" },
-  { symbol: "XOM",    assetType: "stock" },
+  { symbol: "BAC",    assetType: "stock" },
   { symbol: "UNH",    assetType: "stock" },
+  { symbol: "LLY",    assetType: "stock" },
+  { symbol: "WMT",    assetType: "stock" },
+  { symbol: "COST",   assetType: "stock" },
+  { symbol: "XOM",    assetType: "stock" },
+  { symbol: "CVX",    assetType: "stock" },
+  // Broad ETFs
   { symbol: "SPY",    assetType: "etf" },
   { symbol: "QQQ",    assetType: "etf" },
+  { symbol: "IWM",    assetType: "etf" },
+  { symbol: "DIA",    assetType: "etf" },
+  { symbol: "EEM",    assetType: "etf" },
+  // Crypto
   { symbol: "BTC",    assetType: "crypto" },
   { symbol: "ETH",    assetType: "crypto" },
+  { symbol: "SOL",    assetType: "crypto" },
+  // Commodities
   { symbol: "GC=F",   assetType: "commodity" },
+  { symbol: "SI=F",   assetType: "commodity" },
+  { symbol: "CL=F",   assetType: "commodity" },
+  // FX
+  { symbol: "EURUSD=X", assetType: "forex" },
+  { symbol: "GBPUSD=X", assetType: "forex" },
+  { symbol: "USDJPY=X", assetType: "forex" },
 ];
 
 const RANGES: Range[] = ["1m", "5m", "10m", "1h", "3h", "1D", "5D", "1M", "3M", "6M"];
