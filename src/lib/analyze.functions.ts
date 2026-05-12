@@ -370,6 +370,7 @@ export type AnalysisResult = Awaited<ReturnType<typeof runAnalysis>>;
 // ============================================================
 
 const HOLDOUT_BARS = 5; // forecast window = 5x → score over next 5 candles
+const BACKTEST_MODEL = "google/gemini-2.5-pro"; // stronger model for accuracy
 
 const blindSchema = {
   name: "blind_prediction",
@@ -379,9 +380,11 @@ const blindSchema = {
     properties: {
       bias: { type: "string", enum: ["bullish", "bearish", "neutral"] },
       conviction: { type: "number", minimum: 0, maximum: 1 },
+      momentum_score: { type: "number", minimum: -1, maximum: 1, description: "Net directional read combining trend, momentum, and mean-reversion math." },
+      regime: { type: "string", enum: ["trending-up", "trending-down", "range", "breakout-up", "breakdown", "exhaustion"] },
       thesis: { type: "string" },
     },
-    required: ["bias", "conviction", "thesis"],
+    required: ["bias", "conviction", "momentum_score", "regime", "thesis"],
   },
 };
 
@@ -389,7 +392,20 @@ const BacktestInput = z.object({
   symbol: z.string().min(1).max(20).regex(/^[A-Z0-9.\-=^]+$/i),
   assetType: AssetSchema,
   range: RangeSchema,
+  strongModel: z.boolean().optional(),
 });
+
+// Linear regression slope on closes, normalized as %/bar
+function trendSlopePct(closes: number[]): number {
+  const n = closes.length;
+  if (n < 2) return 0;
+  const xMean = (n - 1) / 2;
+  const yMean = closes.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { const dx = i - xMean; num += dx * (closes[i] - yMean); den += dx * dx; }
+  const slope = den === 0 ? 0 : num / den;
+  return (slope / yMean) * 100;
+}
 
 export const runBacktestTrial = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
