@@ -364,3 +364,98 @@ export const deleteAnalysis = createServerFn({ method: "POST" })
   });
 
 export type AnalysisResult = Awaited<ReturnType<typeof runAnalysis>>;
+
+// ============================================================
+// Walk-forward backtest — blind: AI never sees the future slice
+// ============================================================
+
+const HOLDOUT_BARS = 5; // forecast window = 5x → score over next 5 candles
+
+const blindSchema = {
+  name: "blind_prediction",
+  description: "Direction call from price action + indicators only. No future data, no news.",
+  parameters: {
+    type: "object",
+    properties: {
+      bias: { type: "string", enum: ["bullish", "bearish", "neutral"] },
+      conviction: { type: "number", minimum: 0, maximum: 1 },
+      thesis: { type: "string" },
+    },
+    required: ["bias", "conviction", "thesis"],
+  },
+};
+
+const BacktestInput = z.object({
+  symbol: z.string().min(1).max(20).regex(/^[A-Z0-9.\-=^]+$/i),
+  assetType: AssetSchema,
+  range: RangeSchema,
+});
+
+export const runBacktestTrial = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => BacktestInput.parse(d))
+  .handler(async ({ data }) => {
+    const t0 = Date.now();
+    const ohlcv = await fetchOhlcvData({ symbol: data.symbol, assetType: data.assetType, range: data.range });
+    const total = ohlcv.candles.length;
+    if (total < HOLDOUT_BARS + 30) {
+      throw new Error(`Not enough candles (${total}) for ${data.symbol} @ ${data.range}`);
+    }
+    const historical = ohlcv.candles.slice(0, total - HOLDOUT_BARS);
+    const future = ohlcv.candles.slice(total - HOLDOUT_BARS);
+    const indicators = computeAll(historical);
+    const sum = summarize(indicators);
+    const last = historical[historical.length - 1];
+    const first = historical[0];
+    const change = ((last.c - first.c) / first.c) * 100;
+    const high = Math.max(...historical.map((c) => c.h));
+    const low = Math.min(...historical.map((c) => c.l));
+    const forecastWindow = FORECAST_MAP[data.range] ?? data.range;
+
+    // BLIND: only historical context. No symbol disclosed (extra anti-leak), no news, no future bars.
+    const indicatorList = indicators
+      .filter((i) => i.signal !== "neutral" && i.strength > 0.3)
+      .slice(0, 30)
+      .map((i) => `- ${i.name} [${i.category}]: ${i.signal} (str ${i.strength.toFixed(2)}) ${i.value ?? ""}`).join("\n");
+
+    const ctx = `Asset class: ${data.assetType}. Bar interval: ${data.range}. Forecast window: next ${forecastWindow}.
+Bars observed: ${historical.length}. Last close: ${last.c.toFixed(4)}. Period change: ${change.toFixed(2)}%.
+Period high: ${high.toFixed(4)}, low: ${low.toFixed(4)}.
+Recent 8 closes: ${historical.slice(-8).map((c) => c.c.toFixed(4)).join(", ")}.
+Indicator summary: ${sum.bullish} bullish / ${sum.bearish} bearish / ${sum.neutral} neutral, net ${sum.score.toFixed(2)}.
+
+Top signals:
+${indicatorList}`;
+
+    const pred = await callAI({
+      system: `You are a quantitative trader. From the price-action and indicator context, call direction over the next ${forecastWindow}. You have NO knowledge of the symbol's identity, no news, and no future data — predict purely from the chart math.`,
+      user: ctx,
+      schema: blindSchema,
+    });
+
+    // Score
+    const startC = last.c;
+    const endC = future[future.length - 1].c;
+    const actualPct = ((endC - startC) / startC) * 100;
+    const NEUTRAL_THRESHOLD = 0.3; // %
+    const actualBias: "bullish" | "bearish" | "neutral" =
+      actualPct > NEUTRAL_THRESHOLD ? "bullish" : actualPct < -NEUTRAL_THRESHOLD ? "bearish" : "neutral";
+
+    // Correct if directional match. Neutral predictions are correct only on neutral outcomes.
+    let correct = false;
+    if (pred.bias === actualBias) correct = true;
+    else if (pred.bias !== "neutral" && actualBias !== "neutral") correct = pred.bias === actualBias;
+
+    return {
+      symbol: ohlcv.symbol,
+      range: data.range,
+      predictedBias: pred.bias as "bullish" | "bearish" | "neutral",
+      conviction: pred.conviction as number,
+      thesis: pred.thesis as string,
+      actualBias,
+      actualPct,
+      correct,
+      latencyMs: Date.now() - t0,
+      forecastWindow,
+    };
+  });
