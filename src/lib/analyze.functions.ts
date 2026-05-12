@@ -13,13 +13,14 @@ async function callAI(opts: {
   user: string;
   imageDataUrl?: string;
   schema: { name: string; description: string; parameters: any };
+  modelOverride?: string;
 }) {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
   const userContent: any[] = [{ type: "text", text: opts.user }];
   if (opts.imageDataUrl) userContent.push({ type: "image_url", image_url: { url: opts.imageDataUrl } });
   const body = {
-    model: MODEL,
+    model: opts.modelOverride ?? MODEL,
     messages: [
       { role: "system", content: opts.system },
       { role: "user", content: userContent },
