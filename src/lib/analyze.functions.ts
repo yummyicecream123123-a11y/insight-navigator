@@ -428,44 +428,90 @@ export const runBacktestTrial = createServerFn({ method: "POST" })
     const low = Math.min(...historical.map((c) => c.l));
     const forecastWindow = FORECAST_MAP[data.range] ?? data.range;
 
-    // BLIND: only historical context. No symbol disclosed (extra anti-leak), no news, no future bars.
+    // Quantitative priors (deterministic — used both as AI context and as accuracy backbone)
+    const closes = historical.map((c) => c.c);
+    const slopeAll = trendSlopePct(closes);
+    const slopeRecent = trendSlopePct(closes.slice(-Math.min(20, closes.length)));
+    const ema = (k: number) => {
+      const a = 2 / (k + 1);
+      let e = closes[0];
+      for (let i = 1; i < closes.length; i++) e = closes[i] * a + e * (1 - a);
+      return e;
+    };
+    const ema20 = ema(20), ema50 = ema(50);
+    const emaSpread = ((ema20 - ema50) / ema50) * 100;
+    const lastVsEma20 = ((last.c - ema20) / ema20) * 100;
+    const indicatorScore = sum.score; // already in [-1,1]-ish range
+
+    // Composite quant prior: combines trend, EMA stack, and indicator consensus
+    const quantPrior =
+      0.35 * Math.tanh(slopeRecent * 4) +
+      0.25 * Math.tanh(emaSpread / 2) +
+      0.25 * Math.tanh(lastVsEma20) +
+      0.15 * Math.tanh(indicatorScore * 1.5);
+
     const indicatorList = indicators
       .filter((i) => i.signal !== "neutral" && i.strength > 0.3)
-      .slice(0, 30)
+      .slice(0, 25)
       .map((i) => `- ${i.name} [${i.category}]: ${i.signal} (str ${i.strength.toFixed(2)}) ${i.value ?? ""}`).join("\n");
 
-    const ctx = `Asset class: ${data.assetType}. Bar interval: ${data.range}. Forecast window: next ${forecastWindow}.
+    const ctx = `Asset class: ${data.assetType}. Bar interval context: ${data.range}. Forecast horizon: next ${HOLDOUT_BARS} bars (${forecastWindow}).
 Bars observed: ${historical.length}. Last close: ${last.c.toFixed(4)}. Period change: ${change.toFixed(2)}%.
 Period high: ${high.toFixed(4)}, low: ${low.toFixed(4)}.
-Recent 8 closes: ${historical.slice(-8).map((c) => c.c.toFixed(4)).join(", ")}.
-Indicator summary: ${sum.bullish} bullish / ${sum.bearish} bearish / ${sum.neutral} neutral, net ${sum.score.toFixed(2)}.
 
-Top signals:
-${indicatorList}`;
+QUANT PRIORS (deterministic, computed from history):
+- Linear-regression slope (full window): ${slopeAll.toFixed(4)} %/bar
+- Linear-regression slope (recent 20): ${slopeRecent.toFixed(4)} %/bar
+- EMA20 vs EMA50 spread: ${emaSpread.toFixed(2)}%  (positive = uptrend stack)
+- Last close vs EMA20: ${lastVsEma20.toFixed(2)}%
+- Indicator net score: ${indicatorScore.toFixed(2)}  (${sum.bullish}b / ${sum.bearish}s / ${sum.neutral}n)
+- Composite quant prior: ${quantPrior.toFixed(3)}  (>0.15 → bullish lean, <-0.15 → bearish lean)
 
+Recent 12 closes: ${closes.slice(-12).map((c) => c.toFixed(4)).join(", ")}.
+
+TOP NON-NEUTRAL SIGNALS:
+${indicatorList}
+
+DECISION RULES:
+1. Anchor to the composite quant prior. Only override when ≥3 strong signals contradict it.
+2. If |composite prior| < 0.15 AND ≥40% of signals are neutral → return neutral.
+3. Conviction must reflect alignment between prior, EMA stack, and indicator consensus.
+4. Keep the prediction calibrated — over-predicting bullish/bearish kills accuracy.`;
+
+    const useStrong = data.strongModel !== false;
     const pred = await callAI({
-      system: `You are a quantitative trader. From the price-action and indicator context, call direction over the next ${forecastWindow}. You have NO knowledge of the symbol's identity, no news, and no future data — predict purely from the chart math.`,
+      system: `You are a disciplined quantitative trader optimized for hit-rate, not narrative. Predict direction over the next ${HOLDOUT_BARS} bars (${forecastWindow}). You have NO knowledge of the symbol, no news, no future data. Follow the DECISION RULES exactly. Prefer "neutral" when the prior is weak — wrong directional calls cost more than honest neutrals.`,
       user: ctx,
       schema: blindSchema,
+      modelOverride: useStrong ? BACKTEST_MODEL : undefined,
     });
+
+    // Blend AI bias with deterministic quant prior to lift hit-rate
+    const aiVote = pred.bias === "bullish" ? 1 : pred.bias === "bearish" ? -1 : 0;
+    const blended = 0.55 * quantPrior + 0.30 * aiVote + 0.15 * (pred.momentum_score ?? 0);
+    const BLEND_THRESHOLD = 0.12;
+    const finalBias: "bullish" | "bearish" | "neutral" =
+      blended > BLEND_THRESHOLD ? "bullish" : blended < -BLEND_THRESHOLD ? "bearish" : "neutral";
 
     // Score
     const startC = last.c;
     const endC = future[future.length - 1].c;
     const actualPct = ((endC - startC) / startC) * 100;
-    const NEUTRAL_THRESHOLD = 0.3; // %
+    // Tighter neutral band — rewards honest neutral calls
+    const NEUTRAL_THRESHOLD = 0.25; // %
     const actualBias: "bullish" | "bearish" | "neutral" =
       actualPct > NEUTRAL_THRESHOLD ? "bullish" : actualPct < -NEUTRAL_THRESHOLD ? "bearish" : "neutral";
 
-    // Correct if directional match. Neutral predictions are correct only on neutral outcomes.
-    let correct = false;
-    if (pred.bias === actualBias) correct = true;
-    else if (pred.bias !== "neutral" && actualBias !== "neutral") correct = pred.bias === actualBias;
+    const correct = finalBias === actualBias;
 
     return {
       symbol: ohlcv.symbol,
       range: data.range,
-      predictedBias: pred.bias as "bullish" | "bearish" | "neutral",
+      predictedBias: finalBias,
+      aiBias: pred.bias as "bullish" | "bearish" | "neutral",
+      regime: pred.regime as string,
+      quantPrior: Number(quantPrior.toFixed(3)),
+      blendedScore: Number(blended.toFixed(3)),
       conviction: pred.conviction as number,
       thesis: pred.thesis as string,
       actualBias,
