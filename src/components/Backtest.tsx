@@ -146,7 +146,7 @@ export function Backtest() {
           <div className="text-[10px] uppercase tracking-widest text-primary font-mono">Quality lab</div>
           <h2 className="font-display text-2xl font-semibold tracking-tight mt-1">Walk-forward backtest</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            15 tickers × {RANGES.length} timeframes. AI sees only history, never the future slice. Stops at ≥{Math.round(ACCURACY_TARGET * 100)}% rolling accuracy.
+            {TICKERS.length} tickers × {RANGES.length} timeframes — blended quant prior + Lovable AI (Gemini 2.5 Pro). Stops at ≥{Math.round(ACCURACY_TARGET * 100)}% rolling accuracy.
           </p>
         </div>
         <div className="flex items-center gap-2">
